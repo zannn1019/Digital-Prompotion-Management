@@ -100,7 +100,7 @@ useHead({ title: () => `${title.value} · Panel Admin` })
         </DropdownMenu>
       </header>
 
-      <main id="main" tabindex="-1" class="mx-auto w-full max-w-[1280px] px-4 py-6 md:px-6 md:py-8">
+      <main id="main" tabindex="-1" class="mx-auto w-full px-4 py-6 md:px-6 md:py-8">
         <slot />
       </main>
     </div>

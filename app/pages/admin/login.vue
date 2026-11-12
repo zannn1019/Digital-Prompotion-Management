@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, CircleCheck, Lock } from '@lucide/vue'
+import { CircleAlert, CircleCheck, Lock, Eye, EyeClosed } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -127,7 +127,8 @@ function demo(addr: string) {
               :disabled="state === 'locked'"
               @click="showPw = !showPw"
             >
-              {{ showPw ? 'Sembunyikan' : 'Tampilkan' }}
+              <Eye class="size-5" v-if="!showPw" />
+              <EyeClosed class="size-5" v-else />
             </Button>
           </div>
           <p v-if="fieldErr.password" id="pw-err" class="text-sm font-medium text-destructive">{{ fieldErr.password }}</p>
@@ -141,9 +142,7 @@ function demo(addr: string) {
       <div v-if="demoLogin" class="mt-6 rounded-lg border border-dashed bg-secondary p-4 text-sm">
         <b>Akun demo (data dummy)</b>
         <div class="mt-3 flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" class="h-9" @click="demo('rina@rs-bethesda.test')">Super Admin</Button>
-          <Button variant="outline" size="sm" class="h-9" @click="demo('dimas@rs-bethesda.test')">Staff Konten</Button>
-          <Button variant="outline" size="sm" class="h-9" @click="demo('sari@rs-bethesda.test')">Akun terkunci</Button>
+          <Button variant="outline" size="sm" class="h-9" @click="demo('admin@gmail.com')">Super Admin</Button>
         </div>
         <p class="mt-2 text-xs text-muted-foreground">Kata sandi akun demo: demo123.</p>
       </div>
