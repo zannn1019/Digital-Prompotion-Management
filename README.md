@@ -23,7 +23,7 @@ Open http://localhost:3000/admin/login and use a demo button, or sign in with an
 | sari@rs-bethesda.test    | Locked account                                      |
 | budi@rs-bethesda.test    | Deactivated account                                 |
 
-Five wrong passwords in a row lock an account. New users and password resets get a temporary password, shown once to the Super Admin; at the first sign-in the user must choose a new one (at least 10 characters) at `/admin/ganti-sandi` before anything else works. Anyone can change their own password from the user menu.
+Five wrong passwords in a row lock an account. New users and password resets get a temporary password, shown once to the Super Admin; at the first sign-in the user must choose a new one (at least 10 characters) at `/admin/change-password` before anything else works. Anyone can change their own password from the user menu.
 
 ### Settings for a deployment
 
@@ -100,7 +100,7 @@ tests/                    unit tests (vitest)
 
 ## Canvas editor (off in V1)
 
-The client's V1 is upload-only, so the editor is switched off: `runtimeConfig.public.canvasEditor` is `false`, "Buat poster" goes straight to the upload form, and the editor pages redirect there. Turn it on with `NUXT_PUBLIC_CANVAS_EDITOR=true`; then `/admin/poster/buat` lets staff choose between uploading a finished poster and designing one at `/admin/poster/desain`.
+The client's V1 is upload-only, so the editor is switched off: `runtimeConfig.public.canvasEditor` is `false`, "Buat poster" goes straight to the upload form, and the editor pages redirect there. Turn it on with `NUXT_PUBLIC_CANVAS_EDITOR=true`; then `/admin/posters/new` lets staff choose between uploading a finished poster and designing one at `/admin/posters/design`.
 
 - Built on Konva via vue-konva; the editor code is split into its own chunk, so public poster pages never load it.
 - Phone portrait 4:5 only (1080 × 1350). Starter designs live in `app/utils/designStarters.ts`.
@@ -140,7 +140,7 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 
 ## NFC writing
 
-`/admin/tulis-nfc` writes card URLs with Web NFC. That only works in **Chrome on Android over https**. Elsewhere the page explains why and offers a simulation, so the flow can be demoed on a laptop.
+`/admin/nfc/write` writes card URLs with Web NFC. That only works in **Chrome on Android over https**. Elsewhere the page explains why and offers a simulation, so the flow can be demoed on a laptop.
 
 ## Not done yet (dummy only)
 

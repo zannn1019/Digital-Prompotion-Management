@@ -113,7 +113,7 @@ describe('public poster fields (SEC-08)', () => {
 
 describe('login return path (FE-01)', () => {
   it('keeps admin pages', () => {
-    expect(adminReturnPath('/admin/analitik')).toBe('/admin/analitik')
+    expect(adminReturnPath('/admin/analytics')).toBe('/admin/analytics')
     expect(adminReturnPath('/admin?x=1')).toBe('/admin?x=1')
   })
   it('sends everything else to the dashboard', () => {

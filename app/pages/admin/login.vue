@@ -51,7 +51,7 @@ async function submit() {
   // Signed in. A temporary password must be changed first. Otherwise only return to a page inside the
   // admin panel; anything else (another site, a broken link) goes home.
   await refresh()
-  await navigateTo(signedIn.mustChangePassword ? '/admin/ganti-sandi' : adminReturnPath(route.query.ke))
+  await navigateTo(signedIn.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.ke))
   loading.value = false
 }
 

@@ -71,7 +71,7 @@ const badRange = computed(() => end.value < start.value)
       </label>
       <p class="text-[15px] text-muted-foreground">
         Poster ditambahkan di urutan paling bawah.
-        <NuxtLink to="/admin/halaman" class="font-semibold text-primary underline underline-offset-4">Ubah urutan di menu Halaman</NuxtLink
+        <NuxtLink to="/admin/pages" class="font-semibold text-primary underline underline-offset-4">Ubah urutan di menu Halaman</NuxtLink
         >.
       </p>
     </AdminFormSection>

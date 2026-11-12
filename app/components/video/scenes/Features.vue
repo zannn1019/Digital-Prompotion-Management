@@ -2,11 +2,11 @@
 // Scene 7 · Fitur lainnya: real screens float as small windows (and the visitor page on a phone);
 // a spotlight visits each in turn while its name is shown.
 import type { PublicView } from '#shared/types'
-import Pengumuman from '~/pages/admin/pengumuman/baru.vue'
-import Kartu from '~/pages/admin/kartu/index.vue'
-import Pengguna from '~/pages/admin/pengguna.vue'
+import Pengumuman from '~/pages/admin/announcements/new.vue'
+import Kartu from '~/pages/admin/nfc-cards/index.vue'
+import Pengguna from '~/pages/admin/users.vue'
 import Audit from '~/pages/admin/audit.vue'
-import Pengaturan from '~/pages/admin/pengaturan.vue'
+import Pengaturan from '~/pages/admin/settings.vue'
 import { EASE, type VideoScene } from '~/video/timeline'
 import { until } from '~/video/until'
 

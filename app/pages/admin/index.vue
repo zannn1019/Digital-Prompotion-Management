@@ -44,7 +44,7 @@ const kpis = computed(() => {
       :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(TODAY)}`"
     >
       <Button as-child class="h-11"
-        ><NuxtLink to="/admin/poster/buat"><Plus class="size-4" />Buat poster</NuxtLink></Button
+        ><NuxtLink to="/admin/posters/new"><Plus class="size-4" />Buat poster</NuxtLink></Button
       >
     </AdminPageHeader>
 

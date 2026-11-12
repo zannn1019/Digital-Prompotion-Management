@@ -90,7 +90,7 @@ useHead({ title: () => `${title.value} · Panel Admin` })
               <div class="text-xs font-normal text-muted-foreground">{{ user?.email }}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem class="min-h-11" @select="navigateTo('/admin/ganti-sandi')">
+            <DropdownMenuItem class="min-h-11" @select="navigateTo('/admin/change-password')">
               <KeyRound class="size-4" />Ganti kata sandi
             </DropdownMenuItem>
             <DropdownMenuItem class="min-h-11 text-destructive focus:text-destructive" @select="confirmLogout = true">

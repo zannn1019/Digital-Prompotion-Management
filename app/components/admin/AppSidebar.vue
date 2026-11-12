@@ -12,15 +12,15 @@ const groups = computed(() => [
   {
     title: 'Konten',
     items: [
-      { to: '/admin/poster', label: 'Poster & Pengumuman', icon: FileImage },
-      { to: '/admin/halaman', label: 'Halaman', icon: LayoutPanelTop },
+      { to: '/admin/posters', label: 'Poster & Pengumuman', icon: FileImage },
+      { to: '/admin/pages', label: 'Halaman', icon: LayoutPanelTop },
     ],
   },
   {
     title: 'Kartu & Data',
     items: [
-      { to: '/admin/kartu', label: 'Kartu NFC', icon: CreditCard },
-      { to: '/admin/analitik', label: 'Analitik', icon: BarChart3 },
+      { to: '/admin/nfc-cards', label: 'Kartu NFC', icon: CreditCard },
+      { to: '/admin/analytics', label: 'Analitik', icon: BarChart3 },
     ],
   },
   // Staff Konten never sees these.
@@ -29,9 +29,9 @@ const groups = computed(() => [
         {
           title: 'Sistem',
           items: [
-            { to: '/admin/pengguna', label: 'Pengguna', icon: Users },
+            { to: '/admin/users', label: 'Pengguna', icon: Users },
             { to: '/admin/audit', label: 'Audit Log', icon: History },
-            { to: '/admin/pengaturan', label: 'Pengaturan', icon: Settings },
+            { to: '/admin/settings', label: 'Pengaturan', icon: Settings },
           ],
         },
       ]

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Scene 6 · Analitik: the real analytics page. Totals count up, the daily chart draws left to right,
 // then the camera moves down to the bar lists as they grow.
-import Analitik from '~/pages/admin/analitik.vue'
+import Analitik from '~/pages/admin/analytics.vue'
 import { EASE, type VideoScene } from '~/video/timeline'
 import { cam, countUp, revealWords } from '~/video/motion'
 import { until } from '~/video/until'

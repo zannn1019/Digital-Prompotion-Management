@@ -20,7 +20,7 @@ export interface DesignDraft {
 export const useDesignDraft = () => useState<DesignDraft | null>('design-draft', () => null)
 
 /** Where the editor returns to when it is done. */
-export const draftReturnPath = (draft: DesignDraft | null) => (draft?.posterId ? `/admin/poster/${draft.posterId}` : '/admin/poster/baru')
+export const draftReturnPath = (draft: DesignDraft | null) => (draft?.posterId ? `/admin/posters/${draft.posterId}` : '/admin/posters/upload')
 
 const AUTOSAVE_KEY = 'nfc-poster-design-autosave'
 

@@ -206,7 +206,7 @@ async function replacePhoto(f: File | undefined) {
         <p class="text-[15px] leading-relaxed text-zinc-700">
           Elemen ini mengikuti Pengaturan Situs supaya semua poster seragam. Tidak bisa dipindah, diubah, atau dihapus di sini.
         </p>
-        <NuxtLink v-if="canOpenSettings" to="/admin/pengaturan" class="text-[15px] font-medium underline underline-offset-4"
+        <NuxtLink v-if="canOpenSettings" to="/admin/settings" class="text-[15px] font-medium underline underline-offset-4"
           >Buka Pengaturan Situs</NuxtLink
         >
         <p v-else class="text-[15px] text-muted-foreground">Hubungi Super Admin bila datanya perlu diubah.</p>

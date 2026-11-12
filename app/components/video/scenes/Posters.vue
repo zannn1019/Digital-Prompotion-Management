@@ -1,8 +1,8 @@
 <script setup lang="ts">
 // Scene 3 · Kelola poster: the real poster list fills row by row, then the real upload form,
 // with a spotlight moving from the poster file to the title while it is typed.
-import PosterList from '~/pages/admin/poster/index.vue'
-import PosterNew from '~/pages/admin/poster/baru.vue'
+import PosterList from '~/pages/admin/posters/index.vue'
+import PosterNew from '~/pages/admin/posters/upload.vue'
 import { EASE, type VideoScene } from '~/video/timeline'
 import { cam, rectIn, revealWords, typeInto } from '~/video/motion'
 import { until } from '~/video/until'

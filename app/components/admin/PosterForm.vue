@@ -67,7 +67,7 @@ async function openEditor() {
   // JSON copy: plain data only, detached from this form's reactive state.
   draft.value = JSON.parse(JSON.stringify({ posterId: props.poster?.id, design: design ?? undefined, form: fields }))
   markSaved()
-  await navigateTo('/admin/poster/desain')
+  await navigateTo('/admin/posters/design')
 }
 
 function useUploadInstead() {
@@ -145,7 +145,7 @@ async function save(status: PublishStatus) {
   }
   markSaved()
   toast.success(status === 'published' ? 'Poster diterbitkan. Akan tampil sesuai jadwal.' : 'Draft tersimpan.')
-  await navigateTo('/admin/poster')
+  await navigateTo('/admin/posters')
 }
 
 const preview = usePosterPreview(() => ({
@@ -334,20 +334,42 @@ const preview = usePosterPreview(() => ({
         :errors="errors"
       />
 
-      <div class="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-2xl border bg-background/95 p-4 shadow-lg backdrop-blur">
-        <Button v-if="step === 2" type="button" variant="ghost" class="h-13 px-3 text-base" @click="step = 1"
+      <div class="sticky bottom-2 z-10 grid grid-cols-2 items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:bottom-3 sm:flex sm:gap-3 sm:p-4">
+        <Button
+          v-if="step === 2"
+          type="button"
+          variant="ghost"
+          class="order-2 col-span-2 h-12 justify-start px-2 text-sm sm:order-none sm:h-13 sm:px-3 sm:text-base"
+          @click="step = 1"
+        >
           ><ArrowLeft class="size-4" />Kembali ke isi poster</Button
         >
-        <span class="grow text-[15px] text-muted-foreground">{{
+        <span class="order-1 col-span-2 px-1 text-center text-xs leading-snug text-muted-foreground sm:order-none sm:grow sm:px-0 sm:text-left sm:text-[15px]">{{
           dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan tersimpan.'
         }}</span>
-        <Button type="button" variant="outline" class="h-13 px-5 text-base" :disabled="!!saving" @click="save('draft')">{{
+        <Button
+          type="button"
+          variant="outline"
+          class="order-3 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
+          :disabled="!!saving"
+          @click="save('draft')"
+        >{{
           saving === 'draft' ? 'Menyimpan…' : 'Simpan Draft'
         }}</Button>
-        <Button v-if="step === 1" type="button" class="h-13 px-5 text-base" @click="next"
+        <Button
+          v-if="step === 1"
+          type="button"
+          class="order-4 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
+          @click="next"
           >Lanjut: atur jadwal<ArrowRight class="size-4"
         /></Button>
-        <Button v-else type="button" class="h-13 px-5 text-base" :disabled="!!saving" @click="save('published')">{{
+        <Button
+          v-else
+          type="button"
+          class="order-4 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
+          :disabled="!!saving"
+          @click="save('published')"
+        >{{
           saving === 'published' ? 'Menerbitkan…' : 'Terbitkan poster'
         }}</Button>
       </div>

@@ -31,7 +31,7 @@ async function save(status: PublishStatus) {
   if (!res) return
   markSaved()
   toast.success(status === 'published' ? 'Pengumuman diterbitkan. Tampil di atas semua poster sesuai jadwal.' : 'Draft tersimpan.')
-  await navigateTo('/admin/poster')
+  await navigateTo('/admin/posters')
 }
 
 const preview = usePosterPreview(() => ({

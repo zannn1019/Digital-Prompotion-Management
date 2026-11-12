@@ -91,7 +91,7 @@ async function confirm() {
       <DialogFooter class="items-center gap-2 sm:justify-between">
         <NuxtLink
           v-if="target"
-          :to="`/admin/poster/${target.id}`"
+          :to="`/admin/posters/${target.id}`"
           class="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
           >Ubah isi poster juga</NuxtLink
         >
