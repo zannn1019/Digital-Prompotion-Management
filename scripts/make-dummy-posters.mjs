@@ -21,6 +21,13 @@ const posters = [
   ['seminar-k3', 'SEMINAR', 'Seminar K3', 'Ergonomi Kerja', 'Minggu, 1 Nov · 09.00 · Daring', '#0c4a6e', '#0369a1', '#0891b2'],
   ['senam-sehat', 'PROGRAM', 'Senam Sehat', 'Setiap Jumat', '06.30 · Halaman parkir', '#14532d', '#16a34a', '#84cc16'],
   ['donor-darah', 'DONOR', 'Donor Darah', 'Bersama', 'Sabtu, 21 Nov · Lobi Utama', '#450a0a', '#991b1b', '#e11d48'],
+  // Events from the hospital's own news page (bethesda.or.id, Nov 2026); stand-ins for their posters.
+  ['atls-11', 'PELATIHAN', 'ATLS-11', '20–22 Nov 2026', 'Luring · RS Bethesda · bersama IKABI', '#3f0d12', '#b91c1c', '#f97316'],
+  ['preceptorship', 'PELATIHAN DARING', 'Pembimbing', 'Klinik', 'Preceptorship · 16–19 Nov 2026', '#042f2e', '#0f766e', '#2dd4bf'],
+  ['vaksin-flubio', 'PAKET VAKSIN', 'Vaksin', 'Flubio', 'Rp 299.000 · termasuk konsultasi', '#2e1065', '#6d28d9', '#c084fc'],
+  ['btcls', 'PELATIHAN', 'BTCLS', '3–9 Des 2026', 'Daring + luring · perawat', '#431407', '#c2410c', '#fbbf24'],
+  ['atls-klasikal', 'PELATIHAN', 'ATLS', 'Metode Klasikal', '11–13 Des 2026 · 07.00–17.00', '#0b1f4d', '#1d4ed8', '#38bdf8'],
+  ['world-heart-day', 'HARI JANTUNG SEDUNIA', 'World Heart', 'Day 2026', "29 Sep · Don't miss a beat", '#4c0519', '#be123c', '#fb7185'],
 ]
 
 mkdirSync('public/dummy', { recursive: true })

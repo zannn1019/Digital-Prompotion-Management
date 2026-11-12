@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#431407"/><stop offset=".55" stop-color="#c2410c"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>
+<rect width="800" height="1000" fill="url(#g)"/>
+<circle cx="640" cy="380" r="200" fill="#fff" opacity=".14"/>
+<circle cx="120" cy="900" r="160" fill="#000" opacity=".12"/>
+<g font-family="Arial, Helvetica, sans-serif" fill="#fff">
+<text x="60" y="100" font-size="30" font-weight="700" letter-spacing="4">PELATIHAN</text>
+<text x="740" y="100" font-size="24" font-weight="700" text-anchor="end" opacity=".9">RS BETHESDA</text>
+<text x="60" y="700" font-size="96" font-weight="800">BTCLS</text>
+<text x="60" y="800" font-size="72" font-weight="800">3–9 Des 2026</text>
+<text x="60" y="880" font-size="32" font-weight="600" opacity=".95">Daring + luring · perawat</text>
+</g></svg>

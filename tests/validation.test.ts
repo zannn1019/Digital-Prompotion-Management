@@ -11,6 +11,8 @@ import {
   settingsSchema,
   userPatchSchema,
 } from '../server/utils/validation'
+import { db } from '../server/utils/db'
+import { posterState } from '#shared/utils/format'
 
 const validImage = {
   kind: 'gambar',
@@ -152,5 +154,41 @@ describe('"Perpanjang" end date', () => {
   it('refuses more than a year past the current end', () => {
     expect(extendEndProblem('2026-10-31', '2027-11-02')).toBe('Maksimal 1 tahun setelah 31 Okt 2026.')
     expect(extendEndProblem('2026-10-31', '9999-12-31')).toBe('Maksimal 1 tahun setelah 31 Okt 2026.')
+  })
+})
+
+describe('seed data', () => {
+  // Seeded posters skip the API, so check them against the same rules the edit form uses:
+  // a seeded poster that breaks a limit could not be saved again from the admin.
+  it('every seeded image poster passes the poster schema', () => {
+    const fields = [
+      'kind',
+      'status',
+      'start',
+      'end',
+      'name',
+      'imageUrl',
+      'description',
+      'buttons',
+      'title',
+      'category',
+      'price',
+      'priceUnit',
+      'listTitle',
+      'points',
+      'terms',
+    ] as const
+    for (const p of db.posters.filter(p => p.kind === 'gambar')) {
+      const body = Object.fromEntries(fields.filter(k => p[k] !== undefined).map(k => [k, p[k]]))
+      const r = imagePosterSchema.safeParse(body)
+      expect(r.success ? '' : JSON.stringify(r.error.issues[0]), p.id).toBe('')
+    }
+  })
+
+  it('the events page shows the live events, and its card resolves to it', () => {
+    const page = db.pages.find(p => p.id === 'pg5')!
+    const live = page.posterIds.filter(id => posterState(db.posters.find(p => p.id === id)!) === 'tayang')
+    expect(live).toEqual(['p9', 'p11', 'p10'])
+    expect(db.cards.find(c => c.code === 'E7VNT2KQ')).toMatchObject({ pageId: 'pg5', status: 'aktif' })
   })
 })

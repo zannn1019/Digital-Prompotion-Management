@@ -38,12 +38,13 @@ Five wrong passwords in a row lock an account. New users and password resets get
 
 ## Public poster pages
 
-| URL           | What it shows                          |
-| ------------- | -------------------------------------- |
-| `/k/K7Q2M9XA` | Active card → full poster page         |
-| `/k/H3LPQSTX` | Deactivated card → general page        |
-| `/k/P4NTRY3Q` | Unmapped card → general page           |
-| `/k/ZZZZ9999` | Unknown code → friendly 404 (HTTP 404) |
+| URL           | What it shows                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `/k/K7Q2M9XA` | Active card → full poster page                                                                                            |
+| `/k/E7VNT2KQ` | Events page "Diklat & Acara RS Bethesda": real trainings and packages from bethesda.or.id (Nov 2026) with stand-in images |
+| `/k/H3LPQSTX` | Deactivated card → general page                                                                                           |
+| `/k/P4NTRY3Q` | Unmapped card → general page                                                                                              |
+| `/k/ZZZZ9999` | Unknown code → friendly 404 (HTTP 404)                                                                                    |
 
 Poster pages are server-rendered, send `noindex` and set no cookies. Layout ("promo detail"): the page's first poster is shown in full — image, category and "Berlaku s/d" chips, title, short text, price, list of points, brochure button, folded terms — and the page's other posters become "Info lainnya" cards that open their own detail via `?p=<id>`. A contact bar stays at the bottom of the phone screen: the first contact button is the big one, the rest are icons. Empty optional fields are not shown, and the text stays readable if the image fails.
 
