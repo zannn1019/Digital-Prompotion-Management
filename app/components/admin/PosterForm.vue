@@ -334,7 +334,9 @@ const preview = usePosterPreview(() => ({
         :errors="errors"
       />
 
-      <div class="sticky bottom-2 z-10 grid grid-cols-2 items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:bottom-3 sm:flex sm:gap-3 sm:p-4">
+      <div
+        class="sticky bottom-2 z-10 grid grid-cols-2 items-center gap-2 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:bottom-3 sm:flex sm:gap-3 sm:p-4"
+      >
         <Button
           v-if="step === 2"
           type="button"
@@ -342,20 +344,20 @@ const preview = usePosterPreview(() => ({
           class="order-2 col-span-2 h-12 justify-start px-2 text-sm sm:order-none sm:h-13 sm:px-3 sm:text-base"
           @click="step = 1"
         >
-          ><ArrowLeft class="size-4" />Kembali ke isi poster</Button
-        >
-        <span class="order-1 col-span-2 px-1 text-center text-xs leading-snug text-muted-foreground sm:order-none sm:grow sm:px-0 sm:text-left sm:text-[15px]">{{
-          dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan tersimpan.'
-        }}</span>
+          <ArrowLeft class="size-4" />Kembali ke isi poster
+        </Button>
+        <span
+          class="order-1 col-span-2 px-1 text-center text-xs leading-snug text-muted-foreground sm:order-none sm:grow sm:px-0 sm:text-left sm:text-[15px]"
+          >{{ dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan tersimpan.' }}
+        </span>
         <Button
           type="button"
           variant="outline"
           class="order-3 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
           :disabled="!!saving"
           @click="save('draft')"
-        >{{
-          saving === 'draft' ? 'Menyimpan…' : 'Simpan Draft'
-        }}</Button>
+          >{{ saving === 'draft' ? 'Menyimpan…' : 'Simpan Draft' }}</Button
+        >
         <Button
           v-if="step === 1"
           type="button"
@@ -369,9 +371,8 @@ const preview = usePosterPreview(() => ({
           class="order-4 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
           :disabled="!!saving"
           @click="save('published')"
-        >{{
-          saving === 'published' ? 'Menerbitkan…' : 'Terbitkan poster'
-        }}</Button>
+          >{{ saving === 'published' ? 'Menerbitkan…' : 'Terbitkan poster' }}</Button
+        >
       </div>
     </form>
 

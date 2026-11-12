@@ -127,8 +127,8 @@ function demo(addr: string) {
               :disabled="state === 'locked'"
               @click="showPw = !showPw"
             >
-              <Eye class="size-5" v-if="!showPw" />
-              <EyeClosed class="size-5" v-else />
+              <Eye v-if="!showPw" class="size-5" />
+              <EyeClosed v-else class="size-5" />
             </Button>
           </div>
           <p v-if="fieldErr.password" id="pw-err" class="text-sm font-medium text-destructive">{{ fieldErr.password }}</p>
