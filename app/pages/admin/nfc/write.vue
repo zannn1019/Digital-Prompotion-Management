@@ -10,7 +10,7 @@ definePageMeta({ middleware: 'auth', layout: false })
 useHead({ title: 'Tulis Kartu NFC' })
 
 const { cards: all, refresh } = useCards()
-const { supported, writeUrl, cancel: cancelNfc } = useWebNfc()
+const { supported, secureContext, writeUrl, cancel: cancelNfc } = useWebNfc()
 const { copy } = useCopy()
 
 // Cards still to write, plus those written today (to show progress).
@@ -51,7 +51,13 @@ async function start() {
 async function finish(ok: boolean) {
   const card = sel.value
   if (!card) return
-  await $fetch(`/api/cards/${card.code}/write`, { method: 'POST', body: { ok, locked: lock.value } })
+  try {
+    await $fetch(`/api/cards/${card.code}/write`, { method: 'POST', body: { ok, locked: lock.value } })
+  } catch {
+    failReason.value = 'Kartu sudah mungkin tertulis, tetapi statusnya gagal disimpan. Periksa daftar kartu sebelum mengulang.'
+    step.value = 'fail'
+    return
+  }
   if (ok) {
     lastWritten.value = { ...card, locked: card.locked || lock.value }
     navigator.vibrate?.(200)
@@ -92,6 +98,7 @@ function copyUrl() {
       <h1 class="text-[26px] leading-tight font-bold">HP ini belum bisa menulis kartu</h1>
       <p class="text-[17px] leading-relaxed text-zinc-700">
         Penulisan kartu dari browser hanya bisa di <b>HP Android</b> dengan <b>Google Chrome</b>, NFC menyala, dan alamat https.
+        <span v-if="!secureContext">Alamat halaman ini belum menggunakan https.</span>
       </p>
       <ol class="list-decimal rounded-xl border bg-secondary py-3.5 pr-3.5 pl-9 text-base leading-8">
         <li>Buka Pengaturan HP → nyalakan <b>NFC</b>.</li>
