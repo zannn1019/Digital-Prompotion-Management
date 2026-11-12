@@ -3,7 +3,7 @@ import { TODAY } from '#shared/utils/format'
 // Click logger: count the click (no personal data), then redirect.
 // Targets come only from Settings, never from the URL, so this can't be used as an open redirect.
 export default defineEventHandler(event => {
-  const posterId = getRouterParam(event, 'poster') ?? ''
+  const posterId = getRouterParam(event, 'posterId') ?? ''
   const button = getRouterParam(event, 'button') ?? ''
   const card = String(getQuery(event).c ?? '').slice(0, 8)
   const s = db.settings

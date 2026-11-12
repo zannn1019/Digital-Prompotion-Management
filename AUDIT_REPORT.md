@@ -51,7 +51,7 @@ Severity labels: **Confirmed**: reproduced at runtime or by running the code. **
 | Framework      | Nuxt 4.6.3 (Vue 3.5.44, vue-router 5.4.0), Nitro 2.13.5 / h3 1.15.11, Node 24.21                                                                                              |
 | UI             | Tailwind CSS 4, shadcn-vue (reka-ui), lucide icons, vue-sonner; Konva canvas editor (switched off in V1)                                                                      |
 | Rendering      | `/admin/**` client-only SPA (`ssr: false`); `/k/[code]` public poster page server-rendered with `noindex`                                                                     |
-| Backend        | Nitro API routes in `server/api` (25 handlers), click-redirect route `server/routes/go/[poster]/[button]`, one global middleware (`server/middleware/security.ts`)            |
+| Backend        | Nitro API routes in `server/api` (25 handlers), click-redirect route `server/routes/go/[posterId]/[button]`, one global middleware (`server/middleware/security.ts`)            |
 | Data           | **No database.** In-memory arrays in `server/utils/db.ts`; uploads in a `Map` of byte arrays; "today" fixed at `2026-10-27`                                                   |
 | Auth           | Random 256-bit session token in an `HttpOnly; Secure; SameSite=Lax` cookie, in-memory session map, 30-min sliding idle timeout. Roles: `super`, `staff`. Dummy password check |
 | Validation     | zod 4 strict schemas for every write (`server/utils/validation.ts`)                                                                                                           |
@@ -152,7 +152,7 @@ Severity labels: **Confirmed**: reproduced at runtime or by running the code. **
 
 ### SEC-11 — Tap and click analytics can be inflated (LOW, code-confirmed)
 
-- **Affected:** `server/api/public/k/[code].get.ts:20` (GET with side effects), `server/routes/go/[poster]/[button].get.ts:20-21`
+- **Affected:** `server/api/public/k/[code].get.ts:20` (GET with side effects), `server/routes/go/[posterId]/[button].get.ts:20-21`
 - **Description:** Anonymous, unthrottled, no bot filtering. The `bots` column is only seed data. Link-preview bots and prefetchers also count as taps.
 - **Remediation:** Rate-limit per IP and card, ignore known bots or prefetch (`Sec-Purpose: prefetch`), and dedupe repeat taps within a short window.
 
@@ -183,7 +183,7 @@ Severity labels: **Confirmed**: reproduced at runtime or by running the code. **
 - Security headers in production: CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, Permissions-Policy, COOP. `X-Robots-Tag` is set on `/k/**`.
 - Cross-origin API writes are refused: `Origin: https://evil.test` returned 403.
 - Uploads: the type is detected from the file's bytes. A PNG header followed by HTML was served as `image/png` with `nosniff`. The filename `../../evil<script>.png` was stored as `evilscript.png`. PDFs are served as attachments.
-- No open redirect: `/go/:poster/:button` targets come only from Settings (unknown button → 404). The login `?ke=//example.com` did not leave the site (but see FE-01).
+- No open redirect: `/go/:posterId/:button` targets come only from Settings (unknown button → 404). The login `?returnTo=//example.com` did not leave the site (but see FE-01).
 - Strict schemas reject unknown fields, so there is no mass assignment. CSV export neutralises formulas.
 - No hardcoded secrets found. `.env.video` holds only a feature flag.
 
@@ -281,7 +281,7 @@ Risks to design for, seen in the current data model:
 
 | ID    | Issue                                                                                                                                                                                                                                                   | Where                                                       | Severity                                       |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------- |
-| FE-01 | **A successful login shows "Email atau kata sandi salah · Sisa percobaan: 0"** when `?ke=` is not an internal path. `navigateTo` throws `NUXT_E2001`, and the `catch` treats it as a failed login. The session _was_ created (confirmed in the browser) | `app/pages/admin/login.vue:35-45`                           | Low (confusing; reachable from a crafted link) |
+| FE-01 | **A successful login shows "Email atau kata sandi salah · Sisa percobaan: 0"** when `?returnTo=` is not an internal path. `navigateTo` throws `NUXT_E2001`, and the `catch` treats it as a failed login. The session _was_ created (confirmed in the browser) | `app/pages/admin/login.vue:35-45`                           | Low (confusing; reachable from a crafted link) |
 | FE-02 | The temporary password is shown only in a toast that disappears after 15 s. It is easy to miss and fails WCAG 2.2.1 (Timing Adjustable)                                                                                                                 | `app/pages/admin/users.vue:31-33` (and the reset flow)   | Low                                            |
 | FE-03 | Heading levels skip on the public page: `h1` "Sleep Lab" → `h3` "Manfaat" → `h2` "Info lainnya"                                                                                                                                                         | `app/components/poster/PosterDetail.vue` / `PosterView.vue` | Low                                            |
 | FE-04 | Login fields always set `aria-describedby="email-err"` / `"pw-err"`, even when no error element exists                                                                                                                                                  | `app/pages/admin/login.vue:97, 112`                         | Low                                            |
@@ -402,7 +402,7 @@ Verified on a fresh production build with scripted requests and the browser. Tes
 | SEC-08 internal fields public         | **Fixed**                   | `PUBLIC_POSTER_FIELDS` allow-list (`shared/types.ts`) used by `/api/public/k/:code`                                                                                                             | Keys now `id,kind,end,imageUrl,description,buttons,title,category,price,priceUnit,listTitle,points,terms` |
 | SEC-09 `Origin: null` → 500           | **Fixed**                   | `originHost()` returns null for non-URLs                                                                                                                                                        | 403; same-origin write still 200                                                                          |
 | SEC-10 unbounded maps                 | **Partly fixed**            | Rate-limit windows and login counters pruned above 10,000 entries; expired sessions pruned at each login                                                                                        | Code + unit tests; a shared store (Redis) is still needed for more than one process                       |
-| FE-01 login shows error after success | **Fixed**                   | `app/utils/returnPath.ts`: only `/admin…` return paths; navigation is outside the error handler                                                                                                 | `?ke=//example.com` → lands on `/admin`, no error shown                                                   |
+| FE-01 login shows error after success | **Fixed**                   | `app/utils/returnPath.ts`: only `/admin…` return paths; navigation is outside the error handler                                                                                                 | `?returnTo=//example.com` → lands on `/admin`, no error shown                                                   |
 
 **Still open:** SEC-01 (dummy auth), SEC-11 (tap/click inflation), SEC-12 (CSP nonces), SEC-13, SEC-14, and everything outside security. Residual risk for SEC-04: one client can still lock a known account for 15 minutes (5 tries), but no longer signs its user out. Backoff or CAPTCHA belongs to the real-auth work (P1-4). In production, also enforce the body limit at the proxy.
 

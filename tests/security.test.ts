@@ -117,7 +117,7 @@ describe('login return path (FE-01)', () => {
     expect(adminReturnPath('/admin?x=1')).toBe('/admin?x=1')
   })
   it('sends everything else to the dashboard', () => {
-    for (const ke of [
+    for (const returnTo of [
       undefined,
       ['/admin'],
       '//example.com',
@@ -127,6 +127,6 @@ describe('login return path (FE-01)', () => {
       '/admin\\..',
       '/k/ABC',
     ])
-      expect(adminReturnPath(ke)).toBe('/admin')
+      expect(adminReturnPath(returnTo)).toBe('/admin')
   })
 })

@@ -51,7 +51,7 @@ async function submit() {
   // Signed in. A temporary password must be changed first. Otherwise only return to a page inside the
   // admin panel; anything else (another site, a broken link) goes home.
   await refresh()
-  await navigateTo(signedIn.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.ke))
+  await navigateTo(signedIn.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo))
   loading.value = false
 }
 
@@ -72,7 +72,7 @@ function demo(addr: string) {
       <h1 class="text-2xl font-semibold tracking-tight">Masuk</h1>
       <p class="mt-1.5 mb-5 text-sm text-muted-foreground">Kelola poster yang muncul saat kartu NFC diketuk.</p>
 
-      <Alert v-if="route.query.keluar && state === 'idle'" class="mb-5">
+      <Alert v-if="route.query.loggedOut && state === 'idle'" class="mb-5">
         <CircleCheck class="size-4" />
         <AlertDescription>Anda sudah keluar. Sampai jumpa!</AlertDescription>
       </Alert>
