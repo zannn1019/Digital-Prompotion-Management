@@ -8,6 +8,7 @@ import {
   createCredentialStore,
   hashPassword,
   hashPasswordSync,
+  seedPassword,
   tempPassword,
   verifyPassword,
 } from '../server/utils/passwords'
@@ -17,6 +18,7 @@ import { passwordChangeSchema } from '../server/utils/validation'
 import { db } from '../server/utils/db'
 import { posterLink } from '../app/utils/posterLink'
 import { pickClientIp } from '../server/utils/clientIp'
+import { cardBaseUrl } from '../server/utils/cardLink'
 
 const NOW = Date.parse('2026-10-27T08:00:00Z')
 const PHONE = { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile' }
@@ -219,5 +221,25 @@ describe('password change input (SEC-01)', () => {
   })
   it('needs the current password', () => {
     expect(err({ currentPassword: '', newPassword: 'cukup-panjang' })).toEqual({ currentPassword: 'Isian ini wajib diisi.' })
+  })
+})
+
+describe('staging deploy settings', () => {
+  it('seeded accounts use NUXT_SEED_PASSWORD when set, the demo password otherwise', () => {
+    expect(seedPassword(undefined)).toBe(DEMO_PASSWORD)
+    expect(seedPassword('')).toBe(DEMO_PASSWORD)
+    expect(seedPassword('Rahasia-Staging-2026')).toBe('Rahasia-Staging-2026')
+  })
+  it('refuses a seed password shorter than the minimum, so the server does not start with a weak one', () => {
+    expect(() => seedPassword('pendek')).toThrow('NUXT_SEED_PASSWORD must be at least 10 characters.')
+  })
+  // Regression: card URLs were always https://poster.rs-bethesda.test/k/<code>, so written cards led nowhere.
+  it('writes cards with the configured site address', () => {
+    const forged = () => 'https://evil.test'
+    expect(cardBaseUrl('https://staging.example.co.id/', false, forged, 'https://placeholder.test/k/')).toBe(
+      'https://staging.example.co.id/k/',
+    )
+    expect(cardBaseUrl('', true, () => 'http://localhost:3000', 'https://placeholder.test/k/')).toBe('http://localhost:3000/k/')
+    expect(cardBaseUrl('', false, forged, 'https://placeholder.test/k/')).toBe('https://placeholder.test/k/')
   })
 })

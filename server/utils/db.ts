@@ -3,7 +3,7 @@
 // the API routes are the only code that touches them.
 import type { AuditEntry, Card, DailyRow, Page, Poster, Settings, User } from '#shared/types'
 import { TODAY, addDays, nowStamp } from '#shared/utils/format'
-import { DEMO_PASSWORD, createCredentialStore } from './passwords'
+import { DEMO_PASSWORD, createCredentialStore, seedPassword } from './passwords'
 
 const users: User[] = [
   { id: 'u1', name: 'Rina Kartika', email: 'rina@rs-bethesda.test', role: 'super', status: 'active', lastLogin: '2026-10-27 08:12' },
@@ -411,9 +411,12 @@ export function logAudit(userId: string, action: string, entity: string, target:
 }
 
 // Password hashes, kept apart from `users` so no API response can include them.
-// Every seeded account starts with the demo password, hashed at startup.
+// Every seeded account starts with NUXT_SEED_PASSWORD (or the demo password), hashed at startup.
+const SEED_PASSWORD = seedPassword(process.env.NUXT_SEED_PASSWORD)
+if (SEED_PASSWORD === DEMO_PASSWORD && process.env.NODE_ENV === 'production')
+  console.warn('[auth] Seeded accounts use the public demo password. Set NUXT_SEED_PASSWORD on any server others can reach.')
 const credentials = createCredentialStore()
-for (const u of users) credentials.seed(u.id, DEMO_PASSWORD)
+for (const u of users) credentials.seed(u.id, SEED_PASSWORD)
 
 export const db = { users, posters, pages, cards, audit, settings, daily, credentials }
 

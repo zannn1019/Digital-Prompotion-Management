@@ -10,6 +10,16 @@ import { randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto'
 export const DEMO_PASSWORD = 'demo123'
 /** Shortest password a user may choose. */
 export const MIN_PASSWORD_LENGTH = 10
+
+/**
+ * Password for the seeded accounts. Data lives in memory, so this is what every seeded account
+ * goes back to on each restart: on a reachable server set NUXT_SEED_PASSWORD so it isn't the public demo one.
+ */
+export function seedPassword(fromEnv: string | undefined): string {
+  if (!fromEnv) return DEMO_PASSWORD
+  if (fromEnv.length < MIN_PASSWORD_LENGTH) throw new Error(`NUXT_SEED_PASSWORD must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+  return fromEnv
+}
 const KEY_LENGTH = 64
 
 export interface PasswordHash {
