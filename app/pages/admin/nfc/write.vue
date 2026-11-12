@@ -3,6 +3,7 @@
 // Where Web NFC is missing, the page explains why and offers a simulation so
 // the flow can still be demoed on a laptop.
 import { Check, Nfc, TriangleAlert, X } from '@lucide/vue'
+import { toast } from 'vue-sonner'
 import type { CardRow } from '~/composables/useCards'
 import { TODAY } from '#shared/utils/format'
 
@@ -45,21 +46,27 @@ async function start() {
     step.value = 'writing'
   })
   if (!result.ok && result.cancelled) return
+  // The URL is on the card even when only locking failed: record it as written, not locked.
+  if (!result.ok && result.stage === 'lock') {
+    await finish(true, false)
+    toast.warning(result.reason)
+    return
+  }
   if (!result.ok) failReason.value = result.reason
   await finish(result.ok)
 }
-async function finish(ok: boolean) {
+async function finish(ok: boolean, locked = lock.value) {
   const card = sel.value
   if (!card) return
   try {
-    await $fetch(`/api/cards/${card.code}/write`, { method: 'POST', body: { ok, locked: lock.value } })
+    await $fetch(`/api/cards/${card.code}/write`, { method: 'POST', body: { ok, locked } })
   } catch {
     failReason.value = 'Kartu sudah mungkin tertulis, tetapi statusnya gagal disimpan. Periksa daftar kartu sebelum mengulang.'
     step.value = 'fail'
     return
   }
   if (ok) {
-    lastWritten.value = { ...card, locked: card.locked || lock.value }
+    lastWritten.value = { ...card, locked: card.locked || locked }
     navigator.vibrate?.(200)
   }
   step.value = ok ? 'done' : 'fail'
