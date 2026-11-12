@@ -16,7 +16,7 @@ coverage
 .vscode
 
 # Large files the app doesn't use (designs, requirements, demo video)
-video
+/video
 *.pdf
 *.docx
 *.xlsx

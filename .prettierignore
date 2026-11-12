@@ -11,5 +11,5 @@ app/components/ui
 
 # Static and generated assets
 public
-video
+/video
 .claude
