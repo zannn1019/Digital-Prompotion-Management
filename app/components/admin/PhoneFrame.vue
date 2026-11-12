@@ -1,6 +1,8 @@
 <template>
-  <div class="mx-auto w-[420px] max-w-full rounded-[44px] bg-primary p-2 shadow-xl">
-    <div class="phone-frame-scroll h-[750px] overflow-y-auto overflow-x-hidden overscroll-contain rounded-[34px] bg-[#07070c] scroll-smooth">
+  <div class="mx-auto w-full max-w-full rounded-[44px] bg-primary p-2 shadow-xl">
+    <div
+      class="phone-frame-scroll h-[750px] overflow-y-auto overflow-x-hidden overscroll-contain rounded-[34px] bg-[#07070c] scroll-smooth"
+    >
       <slot />
     </div>
   </div>
