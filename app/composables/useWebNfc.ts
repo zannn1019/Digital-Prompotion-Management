@@ -1,4 +1,4 @@
-// Thin wrapper around Web NFC (Chrome on Android, https only).
+// Thin wrapper around Web NFC (Chrome on Android, https or localhost only).
 // https://developer.mozilla.org/docs/Web/API/Web_NFC_API
 
 interface NdefWriter {
@@ -6,7 +6,8 @@ interface NdefWriter {
   makeReadOnly: (options?: { signal?: AbortSignal }) => Promise<void>
 }
 
-export type NfcResult = { ok: true } | { ok: false; cancelled?: boolean; reason: string }
+/** `stage` says which step failed: 'write' (nothing written) or 'lock' (the URL is on the card, locking it failed). */
+export type NfcResult = { ok: true } | { ok: false; cancelled?: boolean; reason: string; stage?: 'write' | 'lock' }
 
 export function useWebNfc() {
   const secureContext = ref(import.meta.client && window.isSecureContext)
@@ -29,27 +30,24 @@ export function useWebNfc() {
     }
 
     controller = new AbortController()
+    let stage: 'write' | 'lock' = 'write'
     try {
       const reader = new (window as unknown as { NDEFReader: new () => NdefWriter }).NDEFReader()
       await reader.write({ records: [{ recordType: 'url', data: url }] }, { signal: controller.signal })
       if (lock) {
+        stage = 'lock'
         onLocking?.()
         await reader.makeReadOnly({ signal: controller.signal })
       }
       return { ok: true }
-    } catch (error) {
-      const name = error instanceof DOMException ? error.name : ''
-      if (name === 'AbortError') return { ok: false, cancelled: true, reason: '' }
-      if (name === 'NotAllowedError' || name === 'SecurityError') {
-        return { ok: false, reason: 'Izin NFC ditolak. Izinkan NFC untuk situs ini di Chrome dan pastikan NFC menyala.' }
-      }
-      if (name === 'NotSupportedError') {
-        return { ok: false, reason: 'HP atau kartu ini tidak mendukung penulisan NFC.' }
-      }
-      if (name === 'InvalidStateError') {
-        return { ok: false, reason: 'NFC sedang dipakai aplikasi lain. Tutup aplikasi NFC lain, lalu coba lagi.' }
-      }
-      return { ok: false, reason: 'Kartu tidak terbaca. Tempelkan kartu di bagian belakang HP dan tahan selama 2–3 detik.' }
+    } catch (e) {
+      const { name } = nfcErrorInfo(e)
+      if (name === 'AbortError') return { ok: false, cancelled: true, reason: '', stage }
+      const reason =
+        stage === 'lock'
+          ? 'Alamat sudah tertulis, tetapi kartu gagal dikunci. Coba kunci lagi atau pakai kartu tanpa dikunci.'
+          : nfcErrorReason(name)
+      return { ok: false, reason, stage }
     } finally {
       controller = null
     }
