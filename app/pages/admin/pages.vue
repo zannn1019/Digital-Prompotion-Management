@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ChevronUp, Ellipsis, GripVertical, Plus, X } from '@lucide/vue'
+import { ChevronDown, ChevronUp, Ellipsis, Files, GripVertical, Plus, X } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -22,8 +22,16 @@ type PosterRow = Poster & { state: PosterState }
 const { data: pages, refresh: refreshPages, status } = useFetch<PageRow[]>('/api/pages', { server: false })
 const { data: posters } = useFetch<PosterRow[]>('/api/posters', { server: false })
 
-const selectedId = ref('pg1')
+const selectedId = ref('')
 const page = computed(() => pages.value?.find(p => p.id === selectedId.value))
+// Open the first page by default, and again when the selected one is gone.
+watch(
+  pages,
+  list => {
+    if (list?.length && !list.some(p => p.id === selectedId.value)) selectedId.value = list[0]!.id
+  },
+  { immediate: true },
+)
 const order = ref<string[]>([])
 watch(
   page,
@@ -122,8 +130,10 @@ const preview = usePosterPreview(() => ({
 <template>
   <div>
     <AdminPageHeader title="Halaman" description="Halaman adalah poster yang dibuka kartu NFC. Susun urutan poster, lalu terbitkan.">
-      <Button class="h-11" @click="save({ status: 'published' })">{{ dirty ? 'Simpan & terbitkan' : 'Terbitkan halaman' }}</Button>
-      <DropdownMenu>
+      <Button v-if="page" class="h-11" @click="save({ status: 'published' })">{{
+        dirty ? 'Simpan & terbitkan' : 'Terbitkan halaman'
+      }}</Button>
+      <DropdownMenu v-if="page">
         <DropdownMenuTrigger as-child>
           <Button variant="outline" size="icon" class="size-11" aria-label="Opsi halaman lainnya"><Ellipsis class="size-4" /></Button>
         </DropdownMenuTrigger>
@@ -168,7 +178,16 @@ const preview = usePosterPreview(() => ({
         </button>
       </nav>
 
-      <Card class="min-w-0 grow-[999] basis-96 gap-3 p-5">
+      <AdminEmptyState
+        v-if="!page"
+        class="min-w-0 grow-[999] basis-96"
+        :icon="Files"
+        title="Belum ada halaman"
+        description="Buat halaman pertama, susun posternya, lalu petakan kartu NFC ke halaman itu."
+      >
+        <Button class="h-11" @click="showNew = true"><Plus class="size-4" />Buat halaman</Button>
+      </AdminEmptyState>
+      <Card v-if="page" class="min-w-0 grow-[999] basis-96 gap-3 p-5">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-base font-semibold">Urutan poster</h2>
           <Button variant="outline" class="h-10" :disabled="!addable.length" @click="showAdd = !showAdd">
@@ -266,7 +285,7 @@ const preview = usePosterPreview(() => ({
         </ol>
       </Card>
 
-      <aside aria-label="Pratinjau HP" class="flex basis-80 grow flex-col items-center gap-2">
+      <aside v-if="page" aria-label="Pratinjau HP" class="flex basis-80 grow flex-col items-center gap-2">
         <AdminPhoneFrame>
           <PosterView v-if="preview" :view="preview" preview class="min-h-full" />
         </AdminPhoneFrame>

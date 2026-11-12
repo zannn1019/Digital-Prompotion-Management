@@ -113,22 +113,25 @@ function demo(addr: string) {
               v-model="password"
               :type="showPw ? 'text' : 'password'"
               autocomplete="current-password"
-              class="h-11 pr-28"
+              class="h-11 pr-12"
               :disabled="state === 'locked'"
               :aria-invalid="!!fieldErr.password"
               aria-describedby="pw-err"
             />
+            <!-- Icon-only toggle: a fixed name plus aria-pressed tells screen readers what it does and its state. -->
             <Button
               type="button"
               variant="ghost"
               size="sm"
               class="absolute top-1.5 right-1.5"
+              aria-label="Tampilkan kata sandi"
+              :title="showPw ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
               :aria-pressed="showPw"
               :disabled="state === 'locked'"
               @click="showPw = !showPw"
             >
-              <Eye v-if="!showPw" class="size-5" />
-              <EyeClosed v-else class="size-5" />
+              <Eye v-if="!showPw" class="size-5" aria-hidden="true" />
+              <EyeClosed v-else class="size-5" aria-hidden="true" />
             </Button>
           </div>
           <p v-if="fieldErr.password" id="pw-err" class="text-sm font-medium text-destructive">{{ fieldErr.password }}</p>
@@ -142,7 +145,7 @@ function demo(addr: string) {
       <div v-if="demoLogin" class="mt-6 rounded-lg border border-dashed bg-secondary p-4 text-sm">
         <b>Akun demo (data dummy)</b>
         <div class="mt-3 flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" class="h-9" @click="demo('admin@gmail.com')">Super Admin</Button>
+          <Button variant="outline" size="sm" class="h-9" @click="demo('admin@rs-bethesda.test')">Super Admin</Button>
         </div>
         <p class="mt-2 text-xs text-muted-foreground">Kata sandi akun demo: demo123.</p>
       </div>
