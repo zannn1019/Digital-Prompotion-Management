@@ -42,7 +42,7 @@ function otherHref(p: PublicPoster) {
 </script>
 
 <template>
-  <div class="@container flex min-h-full flex-col bg-brand-bg font-[family-name:var(--font-poster)] text-slate-900">
+  <div class="@container phone-view flex min-h-full flex-col bg-brand-bg font-[family-name:var(--font-poster)] text-slate-900">
     <header class="sticky top-0 z-20 border-b-[3px] border-brand-cyan bg-white">
       <div class="mx-auto flex w-full max-w-[480px] items-center gap-3 px-4 py-3 @3xl:max-w-[1120px] @3xl:px-6">
         <img :src="view.settings.logoUrl" :alt="view.settings.company" width="177" height="40" class="block h-10 w-auto @3xl:h-12" />
