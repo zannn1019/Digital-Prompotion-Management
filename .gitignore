@@ -1,0 +1,17 @@
+node_modules
+.nuxt
+.output
+.data
+.nitro
+.cache
+dist
+.env
+.env.*
+!.env.example
+!.env.video
+*.log
+.DS_Store
+
+# Demo video output
+video/
+video-render.log

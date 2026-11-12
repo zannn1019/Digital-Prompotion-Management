@@ -1,0 +1,15 @@
+# Build output and generated code
+.nuxt
+.output
+.data
+node_modules
+coverage
+package-lock.json
+
+# shadcn-vue components are generated; keep them as the generator writes them.
+app/components/ui
+
+# Static and generated assets
+public
+video
+.claude
