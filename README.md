@@ -34,7 +34,7 @@ Five wrong passwords in a row lock an account. New users and password resets get
 | `NUXT_PUBLIC_DEMO_LOGIN` | `true`    | Shows the demo buttons on the login page. Set `false` for anything other than a demo (the buttons only work with `demo123`).                                                                                                                                                                                                                                                                                     |
 | `NUXT_TRUST_PROXY`       | `false`   | Only behind our own proxy: use the right-most `X-Forwarded-For` entry (rate limits, tap counting) and `X-Forwarded-Host`.                                                                                                                                                                                                                                                                                        |
 
-**Public staging:** HTTPS (the session cookie is `Secure`), `NUXT_PUBLIC_SITE_URL`, `NUXT_SEED_PASSWORD`, `NUXT_PUBLIC_DEMO_LOGIN=false`, a single Node process (sessions and data live in its memory), and at the proxy `client_max_body_size 6m` plus gzip. Consider basic auth or an IP allowlist for `/admin` and the admin API; keep `/k/*`, `/go/*`, `/api/public/*`, `/api/uploads/*`, `/_nuxt/*`, `/brand/*` and `/dummy/*` open. Step-by-step Nginx guide: [DEPLOY.md](DEPLOY.md).
+**Public staging:** HTTPS (the session cookie is `Secure`), `NUXT_PUBLIC_SITE_URL`, `NUXT_SEED_PASSWORD`, `NUXT_PUBLIC_DEMO_LOGIN=false`, a single Node process (sessions and data live in its memory), and at the proxy `client_max_body_size 6m` plus gzip. Consider basic auth or an IP allowlist for `/admin` and the admin API; keep `/k/*`, `/go/*`, `/api/public/*`, `/api/uploads/*`, `/_nuxt/*`, `/brand/*` and `/dummy/*` open. Deploy with Docker (one container) behind Nginx: step by step in [DEPLOY.md](DEPLOY.md).
 
 ## Public poster pages
 
@@ -148,7 +148,7 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 - The lockout is still a hard 15-minute lock per account (anyone can lock a known account); backoff or CAPTCHA belongs to the real auth work.
 - Unknown card codes still get their own "Halaman tidak tersedia" page with HTTP 404, so a code's existence can be told apart from an inactive card (see AUDIT_REPORT.md, SEC-13).
 - CSV import of cards (FR-21) and Pustaka Media (FR-15) — planned, not built yet.
-- Health-check endpoint and backups (module 14).
+- Backups (module 14). A basic health check exists: `GET /api/health` answers `{"ok":true}` (used by Docker).
 - Converting PDF posters to an image (a placeholder is shown) and resizing uploads to WebP.
 - Real contact details: the WhatsApp number, phone and email in Settings are placeholders.
 - A real, scannable QR code in the admin Kartu NFC screens (`AdminQrPlaceholder` is a visual stand-in; the public page already uses `PosterQr`).

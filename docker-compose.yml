@@ -1,0 +1,27 @@
+# One container: sessions and data live in its memory, so run exactly one, and know that
+# recreating or restarting it resets the data to the seed data.
+services:
+  app:
+    build: .
+    image: poster-nfc:latest
+    restart: unless-stopped
+    init: true
+    # Settings: copy .env.example to .env and fill it in (see DEPLOY.md).
+    env_file: .env
+    # Only the host's own Nginx reaches the app. 127.0.0.1 also keeps Docker from
+    # opening the port past the firewall. APP_PORT changes the host port if 3000 is taken.
+    ports:
+      - '127.0.0.1:${APP_PORT:-3000}:3000'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'

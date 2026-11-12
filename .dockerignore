@@ -1,0 +1,25 @@
+# Installed and generated inside the image
+node_modules
+.nuxt
+.output
+.data
+.nitro
+.cache
+coverage
+
+# Never copied into an image
+.git
+.env
+.env.*
+!.env.example
+.claude
+.vscode
+
+# Large files the app doesn't use (designs, requirements, demo video)
+video
+*.pdf
+*.docx
+*.xlsx
+/logo.png
+/logo_transparent.png
+*.log
