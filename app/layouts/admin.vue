@@ -24,6 +24,9 @@ const route = useRoute()
 const { user, logout } = useSession()
 const { data: dash } = useFetch('/api/dashboard', { key: 'sidebar-dash', server: false })
 const expiringCount = computed(() => dash.value?.expiring.length ?? 0)
+// "Lihat poster" opens what visitors see for the first active card that has a page; hidden until one exists.
+const { cards } = useCards()
+const previewCard = computed(() => cards.value?.find(c => c.status === 'aktif' && c.pageName))
 
 const navOpen = ref(false)
 watch(
@@ -72,8 +75,10 @@ useHead({ title: () => `${title.value} · Panel Admin` })
         <div class="grow truncate text-sm text-muted-foreground">
           Panel Admin <span aria-hidden="true">/</span> <b class="font-medium text-foreground">{{ title }}</b>
         </div>
-        <Button as-child variant="outline" class="hidden h-10 sm:inline-flex">
-          <a href="/k/K7Q2M9XA" target="_blank" rel="noopener"><ExternalLink class="size-4" />Lihat poster</a>
+        <Button v-if="previewCard" as-child variant="outline" class="hidden h-10 sm:inline-flex">
+          <a :href="`/k/${previewCard.code}`" target="_blank" rel="noopener" :title="`Kartu ${previewCard.label} · ${previewCard.pageName}`"
+            ><ExternalLink class="size-4" />Lihat poster</a
+          >
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>

@@ -4,7 +4,7 @@ Nuxt 4 + Tailwind 4 + shadcn-vue, in the RS Bethesda brand (palette sampled from
 
 The matching designs are on the "Final V1" page of the design board.
 
-All data is fake and kept in memory (`server/utils/db.ts`). It resets when the dev server restarts. "Today" is fixed at **27 Okt 2026** so schedules behave the same on every run.
+All data is kept in memory (`server/utils/db.ts`) and resets when the server restarts. The app starts **empty** apart from one Super Admin: posters, pages, NFC cards and other users are created in the admin panel. "Today" is fixed at **27 Okt 2026** so schedules behave the same on every run.
 
 ## Run
 
@@ -13,15 +13,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000/admin/login and use a demo button, or sign in with an account below. Every seeded account has the password **`demo123`** (stored as a hash, like any other password).
+Open http://localhost:3000/admin/login and use the demo button, or sign in as **`admin@rs-bethesda.test`** (Super Admin). Its password is `NUXT_SEED_PASSWORD`, or **`demo123`** when that isn't set (stored as a hash, like any other password).
 
-| Account                  | Role                                                |
-| ------------------------ | --------------------------------------------------- |
-| rina@rs-bethesda.test    | Super Admin                                         |
-| dimas@rs-bethesda.test   | Staff Konten (no Pengguna / Audit Log / Pengaturan) |
-| agus.it@rs-bethesda.test | Super Admin                                         |
-| sari@rs-bethesda.test    | Locked account                                      |
-| budi@rs-bethesda.test    | Deactivated account                                 |
+To try the visitor side: create a page in **Halaman**, upload a poster in **Poster & Pengumuman** and publish it on that page, register a card in **Kartu NFC** and map it to the page, then open `/k/<card code>`. The header's **Lihat poster** button opens the first active card that has a page.
 
 Five wrong passwords in a row lock an account. New users and password resets get a temporary password, shown once to the Super Admin; at the first sign-in the user must choose a new one (at least 10 characters) at `/admin/change-password` before anything else works. Anyone can change their own password from the user menu.
 
@@ -30,7 +24,7 @@ Five wrong passwords in a row lock an account. New users and password resets get
 | Variable                 | Default   | What it does                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NUXT_PUBLIC_SITE_URL`   | (empty)   | The site's public address, e.g. `https://poster.rs-bethesda.co.id`. Used for the "continue on your phone" QR code, the address written onto NFC cards (`<site>/k/<code>`), and as the only accepted `Origin` for API writes. Without it, production shows no QR code and cards get the placeholder `https://poster.rs-bethesda.test/k/`. Set it **before** writing real cards: a written card keeps its address. |
-| `NUXT_SEED_PASSWORD`     | `demo123` | Password of every seeded account (at least 10 characters; the server refuses to start with a shorter one). Data is in memory, so accounts go back to it on every restart. Set it on any server others can reach; the server logs a warning when it runs with `demo123`.                                                                                                                                          |
+| `NUXT_SEED_PASSWORD`     | `demo123` | Password of the seeded Super Admin (`admin@rs-bethesda.test`) (at least 10 characters; the server refuses to start with a shorter one). Data is in memory, so accounts go back to it on every restart. Set it on any server others can reach; the server logs a warning when it runs with `demo123`.                                                                                                             |
 | `NUXT_PUBLIC_DEMO_LOGIN` | `true`    | Shows the demo buttons on the login page. Set `false` for anything other than a demo (the buttons only work with `demo123`).                                                                                                                                                                                                                                                                                     |
 | `NUXT_TRUST_PROXY`       | `false`   | Only behind our own proxy: use the right-most `X-Forwarded-For` entry (rate limits, tap counting) and `X-Forwarded-Host`.                                                                                                                                                                                                                                                                                        |
 
@@ -38,13 +32,11 @@ Five wrong passwords in a row lock an account. New users and password resets get
 
 ## Public poster pages
 
-| URL           | What it shows                                                                                                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `/k/K7Q2M9XA` | Active card → full poster page                                                                                            |
-| `/k/E7VNT2KQ` | Events page "Diklat & Acara RS Bethesda": real trainings and packages from bethesda.or.id (Nov 2026) with stand-in images |
-| `/k/H3LPQSTX` | Deactivated card → general page                                                                                           |
-| `/k/P4NTRY3Q` | Unmapped card → general page                                                                                              |
-| `/k/ZZZZ9999` | Unknown code → friendly 404 (HTTP 404)                                                                                    |
+| Card                                    | What `/k/<code>` shows                                          |
+| --------------------------------------- | --------------------------------------------------------------- |
+| Active, mapped to a published page      | The page's live posters (full poster page)                      |
+| Deactivated, unmapped, or page not live | The general page (the page marked "Halaman umum"), or a welcome |
+| Unknown code (e.g. `/k/ZZZZ9999`)       | Friendly "Halaman tidak tersedia" (HTTP 404)                    |
 
 Poster pages are server-rendered, send `noindex` and set no cookies. Layout ("promo detail"): the page's first poster is shown in full — image, category and "Berlaku s/d" chips, title, short text, price, list of points, brochure button, folded terms — and the page's other posters become "Info lainnya" cards that open their own detail via `?p=<id>`. A contact bar stays at the bottom of the phone screen: the first contact button is the big one, the rest are icons. Empty optional fields are not shown, and the text stays readable if the image fails.
 

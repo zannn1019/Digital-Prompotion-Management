@@ -12,7 +12,6 @@ import {
   userPatchSchema,
 } from '../server/utils/validation'
 import { db } from '../server/utils/db'
-// import { posterState } from '#shared/utils/format'
 
 const validImage = {
   kind: 'gambar',
@@ -185,10 +184,8 @@ describe('seed data', () => {
     }
   })
 
-  // it('the events page shows the live events, and its card resolves to it', () => {
-  //   const page = db.pages.find(p => p.id === 'pg5')!
-  //   const live = page.posterIds.filter(id => posterState(db.posters.find(p => p.id === id)!) === 'tayang')
-  //   expect(live).toEqual(['p9', 'p11', 'p10'])
-  //   expect(db.cards.find(c => c.code === 'E7VNT2KQ')).toMatchObject({ pageId: 'pg5', status: 'aktif' })
-  // })
+  it('starts empty with one active Super Admin on a reserved domain', () => {
+    expect(db.users.map(u => [u.email, u.role, u.status])).toEqual([['admin@rs-bethesda.test', 'super', 'active']])
+    expect([db.posters.length, db.pages.length, db.cards.length, db.daily.length]).toEqual([0, 0, 0, 0])
+  })
 })

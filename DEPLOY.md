@@ -59,7 +59,7 @@ NUXT_TRUST_PROXY=true
 ```
 
 - `NUXT_PUBLIC_SITE_URL` must be the exact address people open. It goes onto the NFC cards (`<site>/k/<code>`) and it is the only origin allowed to save changes. **Set it before writing real cards**: a written card keeps its address.
-- `NUXT_SEED_PASSWORD` is the password of every seeded account (rina, dimas, agus.it, …). The app refuses to start if it is shorter than 10 characters, so the placeholder in `.env.example` must be replaced.
+- `NUXT_SEED_PASSWORD` is the password of the only seeded account, the Super Admin `admin@rs-bethesda.test`. The app starts with no posters, pages or cards. The app refuses to start if it is shorter than 10 characters, so the placeholder in `.env.example` must be replaced.
 - `NUXT_TRUST_PROXY=true` is correct because Nginx is in front and the container is only reachable through it.
 - `.env` is never committed (it is in `.gitignore` and `.dockerignore`).
 
@@ -193,18 +193,20 @@ Certbot adds the certificate and the http → https redirect to the same file, a
 
 ## 8. Check that it works
 
+The app starts empty, so first check the public side with an unknown card code:
+
 ```bash
-curl -sI https://staging.example.co.id/k/K7Q2M9XA
+curl -sI https://staging.example.co.id/k/ZZZZ9999
 ```
 
-Expect `HTTP/2 200`, a `content-security-policy` header and **no** `x-powered-by`. For compression, open the page in the browser's DevTools → Network: the `.js` and `.css` files should show `content-encoding: gzip`.
+Expect `HTTP/2 404` (the friendly "Halaman tidak tersedia" page), a `content-security-policy` header and **no** `x-powered-by`. For compression, open the page in the browser's DevTools → Network: the `.js` and `.css` files should show `content-encoding: gzip`.
 
 In the browser:
 
-1. `https://staging.example.co.id/k/K7Q2M9XA` shows the Sleep Lab poster (no password prompt).
-2. `https://staging.example.co.id/admin/login` shows the login without demo buttons; sign in with `rina@rs-bethesda.test` and the seed password.
-3. **Kartu NFC**: card addresses start with `https://staging.example.co.id/k/`.
-4. Upload a poster image and save: it should work. A file over 5 MB is refused with a clear message.
+1. `https://staging.example.co.id/admin/login` shows the login without demo buttons; sign in with `admin@rs-bethesda.test` and the seed password.
+2. **Halaman**: create a page. **Poster & Pengumuman**: upload a poster image (a file over 5 MB is refused with a clear message), publish it and put it on that page. Publish the page.
+3. **Kartu NFC**: register a card and map it to the page. Its address starts with `https://staging.example.co.id/k/`.
+4. Open that address on a phone (no password prompt): it shows the poster. The header's **Lihat poster** button opens the same view.
 
 ## 9. Updating
 
