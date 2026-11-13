@@ -11,6 +11,11 @@ useHead({ title: 'Masuk · Panel Admin' })
 
 const route = useRoute()
 const { refresh } = useSession()
+// Already signed in (e.g. an old bookmark or the browser's back button): go on instead of showing the form.
+onMounted(async () => {
+  const me = await refresh()
+  if (me) await navigateTo(me.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo), { replace: true })
+})
 // Demo buttons for the client demo; off with NUXT_PUBLIC_DEMO_LOGIN=false.
 const demoLogin = useRuntimeConfig().public.demoLogin
 const email = ref('')
@@ -18,8 +23,9 @@ const password = ref('')
 const showPw = ref(false)
 const loading = ref(false)
 const fieldErr = ref<{ email?: string; password?: string }>({})
-const state = ref<'idle' | 'error' | 'locked'>('idle')
+const state = ref<'idle' | 'error' | 'locked' | 'problem'>('idle')
 const remaining = ref(0)
+const problem = ref('')
 const lockedUntil = ref<string | null>(null)
 const lockUntil = computed(() => {
   const d = new Date(lockedUntil.value ?? Date.now() + 15 * 60000)
@@ -41,9 +47,19 @@ async function submit() {
     if (e?.statusCode === 423) {
       state.value = 'locked'
       lockedUntil.value = e?.data?.data?.until ?? null
-    } else {
+    } else if (e?.statusCode === 401) {
       state.value = 'error'
       remaining.value = e?.data?.data?.remaining ?? 0
+    } else {
+      // Not a wrong password: too many attempts (429), a refused request (403), the server or the
+      // database being unavailable (5xx), or no connection. Say so instead of "wrong password".
+      state.value = 'problem'
+      problem.value =
+        e?.statusCode === 429
+          ? 'Terlalu banyak percobaan dari perangkat ini. Tunggu sebentar, lalu coba lagi.'
+          : e?.statusCode
+            ? `Server menolak permintaan (${e.statusCode}${e?.data?.statusMessage ? `: ${e.data.statusMessage}` : ''}). Hubungi Super Admin bila berulang.`
+            : 'Tidak bisa terhubung ke server. Periksa koneksi internet, lalu coba lagi.'
     }
     loading.value = false
     return
@@ -81,6 +97,11 @@ function demo(addr: string) {
         <AlertTitle>Email atau kata sandi salah</AlertTitle>
         <AlertDescription>Periksa kembali, lalu coba lagi. Sisa percobaan: {{ remaining }}.</AlertDescription>
       </Alert>
+      <Alert v-if="state === 'problem'" variant="destructive" class="mb-5" role="alert">
+        <CircleAlert class="size-4" />
+        <AlertTitle>Belum bisa masuk</AlertTitle>
+        <AlertDescription>{{ problem }}</AlertDescription>
+      </Alert>
       <Alert v-if="state === 'locked'" variant="destructive" class="mb-5" role="alert">
         <Lock class="size-4" />
         <AlertTitle>Akun terkunci sementara</AlertTitle>
@@ -101,7 +122,7 @@ function demo(addr: string) {
             class="h-11"
             :disabled="state === 'locked'"
             :aria-invalid="!!fieldErr.email"
-            aria-describedby="email-err"
+            :aria-describedby="fieldErr.email ? 'email-err' : undefined"
           />
           <p v-if="fieldErr.email" id="email-err" class="text-sm font-medium text-destructive">{{ fieldErr.email }}</p>
         </div>
@@ -116,7 +137,7 @@ function demo(addr: string) {
               class="h-11 pr-12"
               :disabled="state === 'locked'"
               :aria-invalid="!!fieldErr.password"
-              aria-describedby="pw-err"
+              :aria-describedby="fieldErr.password ? 'pw-err' : undefined"
             />
             <!-- Icon-only toggle: a fixed name plus aria-pressed tells screen readers what it does and its state. -->
             <Button

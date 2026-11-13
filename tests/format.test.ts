@@ -3,6 +3,7 @@ import type { Poster } from '#shared/types'
 import { addDays, daysBetween, fmtDate, posterState, relDays } from '#shared/utils/format'
 import { csvCell } from '~/utils/csv'
 import { initials } from '~/utils/text'
+import { shortenAtWord } from '#shared/utils/text'
 
 const poster = (p: Partial<Poster>): Poster => ({
   id: 'p',
@@ -49,4 +50,15 @@ describe('csvCell', () => {
 describe('initials', () => {
   it('takes two letters', () => expect(initials('Rina Kartika Sari')).toBe('RK'))
   it('handles empty names', () => expect(initials(undefined)).toBe(''))
+})
+
+describe('shortenAtWord', () => {
+  it('keeps short text as is', () => expect(shortenAtWord('Lab tutup besok', 40)).toBe('Lab tutup besok'))
+  // Regression: announcement names were cut mid-word ("… untuk pem").
+  it('cuts at a whole word and marks the cut', () => {
+    const name = shortenAtWord('Layanan lab tutup 1–2 Nov 2026 untuk pemeliharaan alat. IGD tetap buka 24 jam.', 40)
+    expect(name).toBe('Layanan lab tutup 1–2 Nov 2026 untuk…')
+    expect(name.length).toBeLessThanOrEqual(40)
+  })
+  it('cuts one very long word where it must', () => expect(shortenAtWord('x'.repeat(60), 10)).toBe('xxxxxxxxx…'))
 })

@@ -66,7 +66,7 @@ useHead({ title: () => `${title.value} · Panel Admin` })
           size="icon"
           class="size-11 lg:hidden"
           :aria-expanded="navOpen"
-          aria-controls="mobile-nav"
+          :aria-controls="navOpen ? 'mobile-nav' : undefined"
           :aria-label="navOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'"
           @click="navOpen = !navOpen"
         >

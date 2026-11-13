@@ -6,7 +6,12 @@ import type { PublicPoster } from '#shared/types'
 import { POSTER_CATEGORY } from '#shared/constants'
 import { fmtDate } from '#shared/utils/format'
 
-const props = defineProps<{ poster: PublicPoster; docHref?: string; large?: boolean }>()
+const props = defineProps<{ poster: PublicPoster; docHref?: string; large?: boolean; preview?: boolean }>()
+// Heading levels: the featured poster's title is the page's h1, its list one level below. Inside an admin
+// phone preview everything moves down one level, so the admin page keeps a single h1.
+const titleLevel = computed(() => (props.large ? 1 : 2) + (props.preview ? 1 : 0))
+const titleTag = computed(() => `h${titleLevel.value}`)
+const listTag = computed(() => `h${titleLevel.value + 1}`)
 const points = computed(() => (props.poster.points ?? []).map(p => p.trim()).filter(Boolean))
 const hasBrochure = computed(() => props.poster.buttons?.includes('doc'))
 </script>
@@ -21,11 +26,9 @@ const hasBrochure = computed(() => props.poster.buttons?.includes('doc'))
         >Berlaku s/d {{ fmtDate(poster.end) }}</span
       >
     </div>
-    <component
-      :is="large ? 'h1' : 'h2'"
-      :class="['leading-tight font-black tracking-tight', large ? 'text-[28px] @3xl:text-4xl' : 'text-2xl']"
-      >{{ poster.title || poster.name }}</component
-    >
+    <component :is="titleTag" :class="['leading-tight font-black tracking-tight', large ? 'text-[28px] @3xl:text-4xl' : 'text-2xl']">{{
+      poster.title || poster.name
+    }}</component>
     <p class="text-[15px] leading-relaxed whitespace-pre-line text-slate-700 @3xl:text-base">{{ poster.description }}</p>
 
     <div v-if="poster.price" class="flex flex-wrap items-baseline gap-2 rounded-2xl border bg-slate-50 p-3.5">
@@ -35,7 +38,7 @@ const hasBrochure = computed(() => props.poster.buttons?.includes('doc'))
     </div>
 
     <div v-if="points.length">
-      <h3 class="mb-2 text-base font-black">{{ poster.listTitle || 'Poin penting' }}</h3>
+      <component :is="listTag" class="mb-2 text-base font-black">{{ poster.listTitle || 'Poin penting' }}</component>
       <ul class="flex flex-col gap-2 text-[15px] leading-snug text-slate-800">
         <li v-for="(p, i) in points" :key="i" class="flex gap-2.5">
           <span aria-hidden="true" class="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-green-100 text-wa"

@@ -1,3 +1,4 @@
+import { shortenAtWord } from '#shared/utils/text'
 import type { Poster } from '#shared/types'
 import { fmtRange, nowStamp } from '#shared/utils/format'
 
@@ -9,7 +10,7 @@ export default defineEventHandler(async event => {
   const poster: Poster = {
     ...fields,
     id: nextId(input.kind === 'pengumuman' ? 'a' : 'p'),
-    name: fields.name || (input.kind === 'pengumuman' ? input.text.slice(0, 40) : ''),
+    name: fields.name || (input.kind === 'pengumuman' ? shortenAtWord(input.text, 40) : ''),
     archived: false,
     updatedAt: nowStamp(),
     updatedBy: user.id,

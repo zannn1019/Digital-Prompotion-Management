@@ -97,7 +97,10 @@ function checkStep1() {
   if (!form.title.trim()) e.title = 'Isian ini wajib diisi.'
   if (!form.description.trim()) e.description = 'Isian ini wajib. Tulis 1–2 kalimat penjelasan.'
   errors.value = e
-  if (Object.keys(e).length) toast.error(`Ada ${Object.keys(e).length} isian yang perlu diperbaiki. Lihat tanda merah.`)
+  if (Object.keys(e).length) {
+    toast.error(`Ada ${Object.keys(e).length} isian yang perlu diperbaiki. Lihat tanda merah.`)
+    void focusFirstError()
+  }
   return !Object.keys(e).length
 }
 function next() {
@@ -140,7 +143,10 @@ async function save(status: PublishStatus) {
   saving.value = null
   if (!res) {
     // Send the user back to whichever step holds the problem.
-    if (Object.keys(errors.value).some(k => STEP1_FIELDS.includes(k))) step.value = 1
+    if (Object.keys(errors.value).some(k => STEP1_FIELDS.includes(k))) {
+      step.value = 1
+      void focusFirstError()
+    }
     return
   }
   markSaved()

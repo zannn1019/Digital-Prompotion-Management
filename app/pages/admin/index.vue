@@ -58,16 +58,17 @@ const kpis = computed(() => {
     </AdminEmptyState>
 
     <template v-else>
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <!-- Two per row on a phone: four tall cards one under the other pushed everything else far down. -->
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <template v-if="status === 'pending'">
           <Card v-for="i in 4" :key="i"
             ><CardContent class="py-6"><AdminTableSkeleton :rows="1" /></CardContent
           ></Card>
         </template>
-        <Card v-for="k in kpis" v-else :key="k.label" class="gap-1 py-5">
-          <CardContent>
+        <Card v-for="k in kpis" v-else :key="k.label" class="gap-1 py-4 sm:py-5">
+          <CardContent class="px-4 sm:px-6">
             <div class="text-sm font-medium text-muted-foreground">{{ k.label }}</div>
-            <div class="mt-1.5 text-3xl font-bold tracking-tight">{{ k.value }}</div>
+            <div class="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{{ k.value }}</div>
             <div class="mt-0.5 text-[13px] text-muted-foreground">
               <span
                 v-if="k.delta !== undefined && k.delta !== null"
@@ -90,6 +91,7 @@ const kpis = computed(() => {
           <AdminTableSkeleton v-if="status === 'pending'" :rows="3" />
           <AdminEmptyState
             v-else-if="!data?.expiring.length"
+            :level="3"
             title="Tidak ada poster yang segera berakhir"
             description="Semua poster tayang masih aman untuk 7 hari ke depan."
           />
