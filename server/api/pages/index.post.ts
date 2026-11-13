@@ -3,7 +3,7 @@ import { nowStamp } from '#shared/utils/format'
 
 // New pages start empty and as Draft; cards can be mapped to them once they are published.
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const { name } = await parseBody(event, pageCreateSchema)
   if (db.pages.some(p => p.name.toLowerCase() === name.toLowerCase()))
     throw createError({

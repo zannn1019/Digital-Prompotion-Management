@@ -1,6 +1,6 @@
 // Bulk actions on selected cards: map to a page, deactivate, or reactivate.
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const { codes, action, pageId = null } = await parseBody(event, cardBulkSchema)
   // Staff may map cards; status changes are Super Admin only.
   if (action !== 'map' && user.role !== 'super')

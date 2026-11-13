@@ -15,13 +15,15 @@ npm run dev
 
 ### Database (PostgreSQL, in progress)
 
-The move from the in-memory store to PostgreSQL (Drizzle ORM) is under way. The schema is in `server/db/schema.ts`, migrations in `server/db/migrations`; the app applies pending migrations and creates the first Super Admin at start-up when `NUXT_DATABASE_URL` is set. The API routes still use the in-memory store until they are moved over one by one.
+The move from the in-memory store to PostgreSQL (Drizzle ORM) is under way. **Users, passwords and sessions are in the database now, so sign-in needs it** (sessions survive restarts). Posters, pages, cards, analytics, audit log, settings and uploads still use the in-memory store until they are moved over. The schema is in `server/db/schema.ts`, migrations in `server/db/migrations`; the app applies pending migrations and creates the first Super Admin at start-up.
 
 ```bash
 npm run db:up
 ```
 
 starts a local PostgreSQL in Docker on `127.0.0.1:5432`. Then put `NUXT_DATABASE_URL=postgres://poster:poster@127.0.0.1:5432/poster_nfc` in `.env` and restart `npm run dev`. After changing the schema, run `npm run db:generate` to create the next migration; `npm run db:studio` opens a browser view of the data.
+
+Database tests: create a separate database once (`docker compose -f docker-compose.dev.yml exec db createdb -U poster poster_nfc_test`), then run `TEST_DATABASE_URL=postgres://poster:poster@127.0.0.1:5432/poster_nfc_test npm test`. That database is wiped on every run. Without `TEST_DATABASE_URL` those tests are skipped.
 
 Open http://localhost:3000/admin/login and use the demo button, or sign in as **`admin@rs-bethesda.test`** (Super Admin). Its password is `NUXT_SEED_PASSWORD`, or **`demo123`** when that isn't set (stored as a hash, like any other password).
 

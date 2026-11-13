@@ -1,7 +1,7 @@
 import { nowStamp } from '#shared/utils/format'
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const page = db.pages.find(p => p.id === getRouterParam(event, 'id'))
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Halaman tidak ditemukan.' })
   const input = await parseBody(event, pageUpdateSchema)

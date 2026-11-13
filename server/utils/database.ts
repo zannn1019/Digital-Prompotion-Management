@@ -3,6 +3,7 @@
 import { resolve } from 'node:path'
 import { createDatabase, type Database } from '../db/client'
 import { runMigrations, seedDatabase } from '../db/setup'
+import { usersRepo } from '../repositories/users'
 
 let instance: { db: Database; ready: Promise<void> } | null = null
 
@@ -27,7 +28,18 @@ export function initDatabase() {
 
 /** The database, once migrations and the seed are done. */
 export async function useDrizzle(): Promise<Database> {
+  if (!databaseConfigured())
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'Database belum diatur.',
+      message: 'NUXT_DATABASE_URL is not set. For local development run `npm run db:up` and set it in .env (see README).',
+    })
   const { db, ready } = initDatabase()
   await ready
   return db
+}
+
+/** Users, passwords and sessions (server/repositories/users.ts). */
+export async function useUsers() {
+  return usersRepo(await useDrizzle())
 }

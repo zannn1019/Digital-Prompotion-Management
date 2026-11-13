@@ -8,10 +8,10 @@ function isPublic(url: string) {
 
 // Signed-in staff can open every upload (drafts, previews). Visitors only get files that are live,
 // so draft posters and brochures stay private until they are published.
-export default defineEventHandler(event => {
+export default defineEventHandler(async event => {
   const id = getRouterParam(event, 'id') ?? ''
   const file = uploads.get(id)
-  const viewer = currentUser(event)
+  const viewer = await currentUser(event)
   // Someone who still has a temporary password sees only what visitors see.
   const visible = file && (isPublic(`/api/uploads/${id}`) || (viewer && !viewer.mustChangePassword))
   // Same answer for "missing" and "not public yet".

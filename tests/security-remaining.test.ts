@@ -3,19 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { User } from '#shared/types'
 import { DEDUPE_MS, createVisitCounter, isBot, isPrefetch } from '../server/utils/tapCounter'
 import { cspHeader, inlineScriptHashes } from '../server/utils/csp'
-import {
-  DEMO_PASSWORD,
-  createCredentialStore,
-  hashPassword,
-  hashPasswordSync,
-  seedPassword,
-  tempPassword,
-  verifyPassword,
-} from '../server/utils/passwords'
+import { DEMO_PASSWORD, hashPassword, hashPasswordSync, seedPassword, tempPassword, verifyPassword } from '../server/utils/passwords'
 import { MUST_CHANGE_PASSWORD, accessDenial } from '../server/utils/access'
 import { publicUser } from '../server/utils/users'
 import { passwordChangeSchema } from '../server/utils/validation'
-import { db } from '../server/utils/db'
 import { posterLink } from '../app/utils/posterLink'
 import { pickClientIp } from '../server/utils/clientIp'
 import { cardBaseUrl } from '../server/utils/cardLink'
@@ -158,22 +149,18 @@ describe('password storage (SEC-01)', () => {
   })
   it('no longer lets any password containing "demo" in', async () => {
     // The old rule was /demo/i.test(password) for every active account.
-    expect(await db.credentials.verify('u1', DEMO_PASSWORD)).toBe(true)
-    for (const pw of ['demo', 'xdemox', 'DEMO123', 'demo1234', 'demo-abc']) expect(await db.credentials.verify('u1', pw), pw).toBe(false)
-    expect(await db.credentials.verify(undefined, DEMO_PASSWORD)).toBe(false)
+    const stored = hashPasswordSync(DEMO_PASSWORD)
+    expect(await verifyPassword(DEMO_PASSWORD, stored)).toBe(true)
+    for (const pw of ['demo', 'xdemox', 'DEMO123', 'demo1234', 'demo-abc']) expect(await verifyPassword(pw, stored), pw).toBe(false)
   })
-  it('seeds every account with the demo password, as a hash', async () => {
-    for (const u of db.users) expect(await db.credentials.verify(u.id, DEMO_PASSWORD), u.email).toBe(true)
-  })
-  it('temporary passwords are random and are what the store checks', async () => {
-    const store = createCredentialStore()
+  it('temporary passwords are random and only their own hash accepts them', async () => {
     const pw = tempPassword()
     expect(pw).toMatch(/^[\w-]{12}$/)
     expect(pw).not.toMatch(/demo/i)
     expect(tempPassword()).not.toBe(pw)
-    await store.set('u7', pw)
-    expect(await store.verify('u7', pw)).toBe(true)
-    expect(await store.verify('u7', 'demo123')).toBe(false)
+    const stored = await hashPassword(pw)
+    expect(await verifyPassword(pw, stored)).toBe(true)
+    expect(await verifyPassword('demo123', stored)).toBe(false)
   })
 })
 
@@ -181,7 +168,6 @@ describe('user data sent to the browser (SEC-01)', () => {
   it('has a fixed set of fields and no credentials', () => {
     const out = publicUser({ ...user(), ...({ hash: 'x', salt: 'y', password: 'z' } as object) } as User)
     expect(Object.keys(out).sort()).toEqual(['email', 'id', 'lastLogin', 'lockedUntil', 'mustChangePassword', 'name', 'role', 'status'])
-    expect(JSON.stringify(db.users.map(publicUser))).not.toMatch(/hash|salt|demo123/)
   })
 })
 

@@ -13,7 +13,7 @@ const schema = z
   .strict()
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const poster = findPosterOr404(getRouterParam(event, 'id'))
   const { end } = await parseBody(event, schema)
   // After the current end, and at most a year past it (a typo like 9999 can't keep a poster live forever).

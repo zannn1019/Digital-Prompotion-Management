@@ -12,6 +12,7 @@ import {
   userPatchSchema,
 } from '../server/utils/validation'
 import { db } from '../server/utils/db'
+import { SEED_ADMIN } from '../server/db/defaults'
 
 const validImage = {
   kind: 'gambar',
@@ -184,8 +185,8 @@ describe('seed data', () => {
     }
   })
 
-  it('starts empty with one active Super Admin on a reserved domain', () => {
-    expect(db.users.map(u => [u.email, u.role, u.status])).toEqual([['admin@rs-bethesda.test', 'super', 'active']])
+  it('starts empty, with one Super Admin on a reserved domain for the database seed', () => {
+    expect(SEED_ADMIN).toEqual({ name: 'Admin', email: 'admin@rs-bethesda.test', role: 'super' })
     expect([db.posters.length, db.pages.length, db.cards.length, db.daily.length]).toEqual([0, 0, 0, 0])
   })
 })

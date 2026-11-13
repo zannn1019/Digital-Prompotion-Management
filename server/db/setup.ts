@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto'
 import { count } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { hashPasswordSync } from '../utils/passwords'
+import { DEMO_PASSWORD, hashPasswordSync } from '../utils/passwords'
 import type { Database } from './client'
 import { DEFAULT_SETTINGS, SEED_ADMIN } from './defaults'
 import { credentials, settings, users } from './schema'
@@ -21,6 +21,8 @@ export async function seedDatabase(db: Database, adminPassword: string) {
       await tx.insert(users).values({ id, ...SEED_ADMIN })
       await tx.insert(credentials).values({ userId: id, ...hashPasswordSync(adminPassword) })
       console.info(`[db] Created the first Super Admin: ${SEED_ADMIN.email}`)
+      if (adminPassword === DEMO_PASSWORD && process.env.NODE_ENV === 'production')
+        console.warn('[auth] The first Super Admin has the public demo password. Change it now, or set NUXT_SEED_PASSWORD.')
     }
     await tx.insert(settings).values({ key: 'site', value: DEFAULT_SETTINGS }).onConflictDoNothing()
   })

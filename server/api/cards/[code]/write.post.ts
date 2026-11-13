@@ -2,7 +2,7 @@ import { nowStamp } from '#shared/utils/format'
 
 // Called by the phone writer after it wrote (and read back) the card.
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const card = db.cards.find(c => c.code === getRouterParam(event, 'code'))
   if (!card) throw createError({ statusCode: 404, statusMessage: 'Kartu tidak ditemukan.' })
   const { ok, locked = false } = await parseBody(event, cardWriteSchema)

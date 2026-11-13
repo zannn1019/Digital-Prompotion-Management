@@ -11,7 +11,7 @@ function randomCode(): string {
 }
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event, 'super')
+  const user = await requireUser(event, 'super')
   const { count, label, group, pageId } = await parseBody(event, cardRegisterSchema)
   if (pageId && !db.pages.some(p => p.id === pageId)) throw createError({ statusCode: 422, statusMessage: 'Pilih halaman tujuan.' })
 

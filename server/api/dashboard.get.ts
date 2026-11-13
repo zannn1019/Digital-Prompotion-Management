@@ -11,8 +11,9 @@ function sumRange(from: string, to: string) {
   return { taps, clicks }
 }
 
-export default defineEventHandler(event => {
-  requireUser(event)
+export default defineEventHandler(async event => {
+  await requireUser(event)
+  const names = await (await useUsers()).names()
   const cur = sumRange(addDays(TODAY, -6), TODAY)
   const prev = sumRange(addDays(TODAY, -13), addDays(TODAY, -7))
   const days = Array.from({ length: 14 }, (_, i) => addDays(TODAY, i - 13)).map(date => {
@@ -44,6 +45,6 @@ export default defineEventHandler(event => {
     activity: db.audit
       .filter(a => a.entity !== 'Sesi')
       .slice(0, 5)
-      .map(a => ({ ...a, userName: db.users.find(u => u.id === a.userId)?.name ?? '' })),
+      .map(a => ({ ...a, userName: names.get(a.userId) ?? '' })),
   }
 })

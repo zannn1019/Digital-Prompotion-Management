@@ -2,7 +2,7 @@ import type { Poster } from '#shared/types'
 import { fmtRange, nowStamp } from '#shared/utils/format'
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const input = await parseBody(event, posterSchema)
 
   const { pageIds, ...fields } = input.kind === 'gambar' ? input : { ...input, pageIds: undefined }

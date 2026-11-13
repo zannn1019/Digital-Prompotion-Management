@@ -17,7 +17,7 @@ function sniff(b: Uint8Array): string | null {
 }
 
 export default defineEventHandler(async event => {
-  requireUser(event)
+  await requireUser(event)
   rateLimit(event, 'upload', 30, 60_000)
   const parts = await readMultipartFormData(event)
   const file = parts?.find(p => p.name === 'file')

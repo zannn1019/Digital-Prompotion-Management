@@ -2,8 +2,8 @@ import { addDays } from '#shared/utils/format'
 
 const BUTTON_LABEL: Record<string, string> = { wa: 'WhatsApp', tel: 'Telepon', doc: 'Brosur PDF' }
 
-export default defineEventHandler(event => {
-  requireUser(event)
+export default defineEventHandler(async event => {
+  await requireUser(event)
   // Real calendar dates, in order, at most MAX_ANALYTICS_DAYS apart: the day loop below stays bounded.
   const { from, to } = parseQuery(event, analyticsQuerySchema)
 
