@@ -4,7 +4,7 @@ Nuxt 4 + Tailwind 4 + shadcn-vue, in the RS Bethesda brand (palette sampled from
 
 The matching designs are on the "Final V1" page of the design board.
 
-All data is kept in memory (`server/utils/db.ts`) and resets when the server restarts. The app starts **empty** apart from one Super Admin: posters, pages, NFC cards and other users are created in the admin panel. "Today" is fixed at **27 Okt 2026** so schedules behave the same on every run.
+All data is in PostgreSQL and uploaded files on disk, so restarts and redeploys keep them. The app starts **empty** apart from one Super Admin: posters, pages, NFC cards and other users are created in the admin panel. Dates follow the real calendar in Jakarta time (WIB): "today" changes at midnight WIB.
 
 ## Run
 
@@ -13,15 +13,15 @@ npm install
 npm run dev
 ```
 
-### Database (PostgreSQL, in progress)
+### Database (PostgreSQL)
 
-The move from the in-memory store to PostgreSQL (Drizzle ORM) is under way. **Users, passwords and sessions are in the database now, so sign-in needs it** (sessions survive restarts). Posters, pages, cards, analytics, audit log, settings and uploads still use the in-memory store until they are moved over. The schema is in `server/db/schema.ts`, migrations in `server/db/migrations`; the app applies pending migrations and creates the first Super Admin at start-up.
+The app needs PostgreSQL (Drizzle ORM). Data access lives in `server/repositories/` (plain TypeScript, no Nuxt imports). The schema is in `server/db/schema.ts`, migrations in `server/db/migrations`; the app applies pending migrations and creates the first Super Admin at start-up.
 
 ```bash
 npm run db:up
 ```
 
-starts a local PostgreSQL in Docker on `127.0.0.1:5432`. Then put `NUXT_DATABASE_URL=postgres://poster:poster@127.0.0.1:5432/poster_nfc` in `.env` and restart `npm run dev`. After changing the schema, run `npm run db:generate` to create the next migration; `npm run db:studio` opens a browser view of the data.
+starts a local PostgreSQL in Docker on `127.0.0.1:5432`. Uploaded files go to `.data/uploads` (or `NUXT_UPLOAD_DIR`). Then put `NUXT_DATABASE_URL=postgres://poster:poster@127.0.0.1:5432/poster_nfc` in `.env` and restart `npm run dev`. After changing the schema, run `npm run db:generate` to create the next migration; `npm run db:studio` opens a browser view of the data.
 
 Database tests: create a separate database once (`docker compose -f docker-compose.dev.yml exec db createdb -U poster poster_nfc_test`), then run `TEST_DATABASE_URL=postgres://poster:poster@127.0.0.1:5432/poster_nfc_test npm test`. That database is wiped on every run. Without `TEST_DATABASE_URL` those tests are skipped.
 
@@ -71,7 +71,8 @@ server/middleware/        security headers + same-origin check for API writes
 server/routes/go/         click logger + redirect (targets come from Settings only)
 server/utils/validation.ts strict zod schemas for every write endpoint
 server/utils/session.ts   random session tokens, 30-minute idle timeout
-server/utils/db.ts        in-memory dummy data
+server/db/                schema, migrations, connection, seed
+server/repositories/      data access per area (users, content, cards, settings + audit, uploads)
 shared/                   types, constants (labels, themes, upload rules), date helpers
 tests/                    unit tests (vitest)
 ```
@@ -140,7 +141,7 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 | `app/pages/video.vue`               | The stage, preview controls, and `window.__video` for the export script                                                                 |
 | `scripts/render-video.mjs`          | Frame-by-frame export to MP4                                                                                                            |
 
-**When the app changes:** scenes import the real pages (`~/pages/admin/...`) and components, so most changes appear in the video by themselves after a re-render. If a screen's layout changes, check the selectors in that scene (for example the KPI numbers in `Dash.vue`, the form sections `[aria-labelledby="s1"]` in `Posters.vue`) and the camera targets, then render stills to check. New text on screen goes in the scene's template; scene lengths go in `timeline.ts`. Numbers come from `server/utils/db.ts` and are labelled "Data contoh" on screen.
+**When the app changes:** scenes import the real pages (`~/pages/admin/...`) and components, so most changes appear in the video by themselves after a re-render. If a screen's layout changes, check the selectors in that scene (for example the KPI numbers in `Dash.vue`, the form sections `[aria-labelledby="s1"]` in `Posters.vue`) and the camera targets, then render stills to check. New text on screen goes in the scene's template; scene lengths go in `timeline.ts`. The scenes expect demo content (cards such as `K7Q2M9XA`) that the app no longer seeds: add matching content before rendering. Numbers on screen are labelled "Data contoh".
 
 ## NFC writing
 
@@ -148,12 +149,12 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 
 ## Not done yet (dummy only)
 
-- A database and file storage: users, password hashes, sessions and counters all live in memory and reset on restart.
+- Login lockouts, rate limits and the tap dedupe window are kept in the app's memory: fine for one container, a shared store (e.g. Redis) is needed for more.
 - Production-grade authentication on top of the hashing that exists now: Argon2id (or bcrypt) once a dependency is acceptable, a self-service password reset by email, and TOTP for Super Admins.
 - The lockout is still a hard 15-minute lock per account (anyone can lock a known account); backoff or CAPTCHA belongs to the real auth work.
 - Unknown card codes still get their own "Halaman tidak tersedia" page with HTTP 404, so a code's existence can be told apart from an inactive card (see AUDIT_REPORT.md, SEC-13).
 - CSV import of cards (FR-21) and Pustaka Media (FR-15) — planned, not built yet.
-- Backups (module 14). A basic health check exists: `GET /api/health` answers `{"ok":true}` (used by Docker).
+- Automatic off-server copies of the backups (DEPLOY.md step 11 shows the backup, a daily cron job and the restore). A basic health check exists: `GET /api/health` answers `{"ok":true}` (used by Docker).
 - Converting PDF posters to an image (a placeholder is shown) and resizing uploads to WebP.
 - Real contact details: the WhatsApp number, phone and email in Settings are placeholders.
 - A real, scannable QR code in the admin Kartu NFC screens (`AdminQrPlaceholder` is a visual stand-in; the public page already uses `PosterQr`).

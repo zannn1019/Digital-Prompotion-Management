@@ -19,12 +19,15 @@ FROM node:24-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    NUXT_UPLOAD_DIR=/app/uploads
 
 # Owned by root, run as the unprivileged `node` user: the app can't change its own code.
 COPY --from=build /app/.output ./.output
 # SQL migrations, applied by the app at start-up (server/plugins/database.ts).
 COPY --from=build /app/server/db/migrations ./server/db/migrations
+# Uploaded files: the only folder the app writes to (a volume in docker-compose.yml).
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 USER node
 EXPOSE 3000

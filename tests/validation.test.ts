@@ -11,8 +11,8 @@ import {
   settingsSchema,
   userPatchSchema,
 } from '../server/utils/validation'
-import { db } from '../server/utils/db'
 import { SEED_ADMIN } from '../server/db/defaults'
+import { addDays, today } from '#shared/utils/format'
 
 const validImage = {
   kind: 'gambar',
@@ -108,8 +108,9 @@ describe('analytics date range', () => {
   }
 
   it('defaults to the last 30 days, and treats emptied fields as defaults', () => {
-    expect(analyticsQuerySchema.parse({})).toEqual({ from: '2026-09-28', to: '2026-10-27' })
-    expect(analyticsQuerySchema.parse({ from: '', to: '' })).toEqual({ from: '2026-09-28', to: '2026-10-27' })
+    const last30 = { from: addDays(today(), -29), to: today() }
+    expect(analyticsQuerySchema.parse({})).toEqual(last30)
+    expect(analyticsQuerySchema.parse({ from: '', to: '' })).toEqual(last30)
     expect(analyticsQuerySchema.parse({ to: '2026-10-10' })).toEqual({ from: '2026-09-11', to: '2026-10-10' })
   })
 
@@ -158,35 +159,7 @@ describe('"Perpanjang" end date', () => {
 })
 
 describe('seed data', () => {
-  // Seeded posters skip the API, so check them against the same rules the edit form uses:
-  // a seeded poster that breaks a limit could not be saved again from the admin.
-  it('every seeded image poster passes the poster schema', () => {
-    const fields = [
-      'kind',
-      'status',
-      'start',
-      'end',
-      'name',
-      'imageUrl',
-      'description',
-      'buttons',
-      'title',
-      'category',
-      'price',
-      'priceUnit',
-      'listTitle',
-      'points',
-      'terms',
-    ] as const
-    for (const p of db.posters.filter(p => p.kind === 'gambar')) {
-      const body = Object.fromEntries(fields.filter(k => p[k] !== undefined).map(k => [k, p[k]]))
-      const r = imagePosterSchema.safeParse(body)
-      expect(r.success ? '' : JSON.stringify(r.error.issues[0]), p.id).toBe('')
-    }
-  })
-
-  it('starts empty, with one Super Admin on a reserved domain for the database seed', () => {
+  it('seeds one Super Admin on a reserved domain', () => {
     expect(SEED_ADMIN).toEqual({ name: 'Admin', email: 'admin@rs-bethesda.test', role: 'super' })
-    expect([db.posters.length, db.pages.length, db.cards.length, db.daily.length]).toEqual([0, 0, 0, 0])
   })
 })

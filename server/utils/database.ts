@@ -4,6 +4,10 @@ import { resolve } from 'node:path'
 import { createDatabase, type Database } from '../db/client'
 import { runMigrations, seedDatabase } from '../db/setup'
 import { usersRepo } from '../repositories/users'
+import { auditRepo, settingsRepo } from '../repositories/settings'
+import { contentRepo } from '../repositories/content'
+import { cardsRepo } from '../repositories/cards'
+import { uploadsRepo } from '../repositories/uploads'
 
 let instance: { db: Database; ready: Promise<void> } | null = null
 
@@ -42,4 +46,38 @@ export async function useDrizzle(): Promise<Database> {
 /** Users, passwords and sessions (server/repositories/users.ts). */
 export async function useUsers() {
   return usersRepo(await useDrizzle())
+}
+
+/** Site settings (server/repositories/settings.ts). */
+export async function useSettingsRepo() {
+  return settingsRepo(await useDrizzle())
+}
+
+/** Posters, announcements and pages (server/repositories/content.ts). */
+export async function useContent() {
+  return contentRepo(await useDrizzle())
+}
+
+/** Records one entry in the audit log. */
+export async function logAudit(userId: string, action: string, entity: string, target: string, before = '', after = '') {
+  await auditRepo(await useDrizzle()).log(userId, action, entity, target, before, after)
+}
+
+/** The audit log for reading (server/repositories/settings.ts). */
+export async function useAudit() {
+  return auditRepo(await useDrizzle())
+}
+
+/** NFC cards and their tap/click counts (server/repositories/cards.ts). */
+export async function useCardsRepo() {
+  return cardsRepo(await useDrizzle())
+}
+
+/**
+ * Uploaded files (server/repositories/uploads.ts). The bytes go to NUXT_UPLOAD_DIR
+ * (the Docker image uses a volume at /app/uploads), else `.data/uploads` next to the app.
+ */
+export async function useUploads() {
+  const dir = useRuntimeConfig().uploadDir || resolve(process.cwd(), '.data/uploads')
+  return uploadsRepo(await useDrizzle(), dir)
 }

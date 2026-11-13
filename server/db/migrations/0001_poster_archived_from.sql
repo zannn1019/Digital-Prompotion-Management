@@ -1,0 +1,1 @@
+ALTER TABLE "posters" ADD COLUMN "archived_from" "publish_status";

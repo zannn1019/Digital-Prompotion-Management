@@ -1,5 +1,5 @@
-# The app and its PostgreSQL database. Run one app container: login lockouts and rate limits
-# still live in its memory (data, users and sessions are in the database).
+# The app and its PostgreSQL database. All data is in the database and the uploads volume, so restarts and
+# redeploys keep it. Run one app container: login lockouts, rate limits and the tap dedupe window live in its memory.
 services:
   app:
     build: .
@@ -10,6 +10,9 @@ services:
     env_file: .env
     environment:
       NUXT_DATABASE_URL: postgres://poster:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/poster_nfc
+    # Uploaded posters, brochures and logos. Back this volume up together with the database.
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -52,3 +55,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

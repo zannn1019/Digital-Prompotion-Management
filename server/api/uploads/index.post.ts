@@ -1,8 +1,7 @@
-import { randomBytes } from 'node:crypto'
 import { UPLOAD } from '#shared/constants'
 
-// Dummy upload: keeps the file in memory and serves it back from /api/uploads/:id.
-// The real backend stores it, converts PDFs to an image and resizes to WebP.
+// Upload: the bytes go to disk (NUXT_UPLOAD_DIR), the details to the database; served from /api/uploads/:id.
+// Not built yet: converting PDFs to an image and resizing to WebP.
 // The request size is already capped by server/middleware/security.ts before the body is read.
 const MAX_BYTES = UPLOAD.maxBytes
 
@@ -17,7 +16,7 @@ function sniff(b: Uint8Array): string | null {
 }
 
 export default defineEventHandler(async event => {
-  await requireUser(event)
+  const user = await requireUser(event)
   rateLimit(event, 'upload', 30, 60_000)
   const parts = await readMultipartFormData(event)
   const file = parts?.find(p => p.name === 'file')
@@ -27,17 +26,16 @@ export default defineEventHandler(async event => {
   const type = sniff(file.data)
   if (!type) throw createError({ statusCode: 422, statusMessage: 'Format file tidak didukung. Gunakan PNG, JPG, WebP, atau PDF.' })
 
-  // 128 random bits: upload addresses can't be guessed or counted through.
-  const id = `f${randomBytes(16).toString('hex')}`
-  uploads.set(id, { type, data: file.data })
-  const url = `/api/uploads/${id}`
-  // A PDF poster needs an image for the page; converting its first page is not built yet.
-  const previewUrl = type === 'application/pdf' ? '/dummy/pdf-placeholder.svg' : url
   // Keep only a safe display name: no paths, no control characters.
   const name =
     (file.filename ?? 'poster')
       .replace(/^.*[\\/]/, '')
       .replace(/[^\p{L}\p{N} ._()-]/gu, '')
       .slice(0, 120) || 'poster'
+  // Saved under a random 128-bit ID, so upload addresses can't be guessed or counted through.
+  const { id } = await (await useUploads()).save({ data: file.data, type, name, userId: user.id })
+  const url = `/api/uploads/${id}`
+  // A PDF poster needs an image for the page; converting its first page is not built yet.
+  const previewUrl = type === 'application/pdf' ? '/dummy/pdf-placeholder.svg' : url
   return { url, previewUrl, type, name, size: file.data.length }
 })

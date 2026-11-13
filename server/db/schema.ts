@@ -87,6 +87,8 @@ export const posters = pgTable(
     name: text('name').notNull(),
     status: publishStatusEnum('status').notNull().default('draft'),
     archived: boolean('archived').notNull().default(false),
+    /** Status before archiving, so an immediate "Urungkan" restores it exactly. */
+    archivedFrom: publishStatusEnum('archived_from'),
     start: date('start_date', { mode: 'string' }).notNull(),
     end: date('end_date', { mode: 'string' }).notNull(),
     updatedAt: ts('updated_at').notNull().defaultNow(),

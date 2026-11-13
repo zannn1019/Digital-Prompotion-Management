@@ -3,7 +3,7 @@ import { Plus } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { fmtDate, fmtDateLong, fmtDateTime, fmtNumber, relDays, daysBetween, TODAY } from '#shared/utils/format'
+import { fmtDate, fmtDateLong, fmtDateTime, fmtNumber, relDays, daysBetween, today } from '#shared/utils/format'
 
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Beranda' })
 const { user } = useSession()
@@ -41,7 +41,7 @@ const kpis = computed(() => {
   <div>
     <AdminPageHeader
       :title="`${greeting}, ${user?.name.split(' ')[0] ?? ''}`"
-      :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(TODAY)}`"
+      :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(today())}`"
     >
       <Button as-child class="h-11"
         ><NuxtLink to="/admin/posters/new"><Plus class="size-4" />Buat poster</NuxtLink></Button
@@ -111,7 +111,7 @@ const kpis = computed(() => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <AdminStatusPill :tone="daysBetween(TODAY, p.end) <= 5 ? 'danger' : 'warning'">{{ relDays(p.end) }}</AdminStatusPill>
+                  <AdminStatusPill :tone="daysBetween(today(), p.end) <= 5 ? 'danger' : 'warning'">{{ relDays(p.end) }}</AdminStatusPill>
                   <div class="mt-0.5 text-xs text-muted-foreground">{{ fmtDate(p.end) }}</div>
                 </TableCell>
                 <TableCell class="pr-5 text-right">

@@ -1,19 +1,18 @@
-import { nowStamp } from '#shared/utils/format'
-
 export default defineEventHandler(async event => {
   const user = await requireUser(event)
-  const poster = findPosterOr404(getRouterParam(event, 'id'))
-  const copy = {
-    ...poster,
-    id: nextId(poster.kind === 'pengumuman' ? 'a' : 'p'),
-    name: `${poster.name} (salinan)`,
-    status: 'draft' as const,
-    archived: false,
-    archivedFrom: undefined,
-    updatedAt: nowStamp(),
-    updatedBy: user.id,
-  }
-  db.posters.unshift(copy)
-  logAudit(user.id, 'Membuat', 'Poster', copy.name, '', `Salinan dari “${poster.name}” · Draft`)
+  const poster = await findPosterOr404(getRouterParam(event, 'id'))
+  const { id: _id, updatedAt: _u, updatedBy: _b, archivedFrom: _a, ...fields } = poster
+  // The copy starts as a Draft on no page, so nothing goes live twice by accident.
+  const copy = await (
+    await useContent()
+  ).createPoster({ ...fields, name: `${poster.name} (salinan)`, status: 'draft', archived: false }, user.id)
+  await logAudit(
+    user.id,
+    'Membuat',
+    poster.kind === 'pengumuman' ? 'Pengumuman' : 'Poster',
+    copy.name,
+    '',
+    `Salinan dari “${poster.name}” · Draft`,
+  )
   return copy
 })

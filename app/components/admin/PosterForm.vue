@@ -9,7 +9,7 @@ import { designText } from '#shared/design'
 import type { PosterDesign } from '#shared/design'
 import type { ContactButton, Page, Poster, PosterCategory, PublishStatus } from '#shared/types'
 import { POSTER_CATEGORY, POSTER_LIMITS } from '#shared/constants'
-import { TODAY, addDays } from '#shared/utils/format'
+import { today, addDays } from '#shared/utils/format'
 import type { UploadedFile } from '~/utils/upload'
 
 const props = defineProps<{ poster?: Poster & { pageIds?: string[] } }>()
@@ -37,8 +37,8 @@ const form = reactive({
   contacts: (p?.buttons ?? ['wa', 'tel']).filter(b => b !== 'doc') as ContactButton[],
   /** Internal name for the team's list; defaults to the title. */
   name: p?.name ?? '',
-  start: p?.start ?? TODAY,
-  end: p?.end ?? addDays(TODAY, 29),
+  start: p?.start ?? today(),
+  end: p?.end ?? addDays(today(), 29),
   pageIds: [...(p?.pageIds ?? [])],
   /** Set when the image comes from the canvas editor (hidden in V1). */
   design: (p?.design ?? null) as PosterDesign | null,

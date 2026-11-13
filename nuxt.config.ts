@@ -18,6 +18,8 @@ export default defineNuxtConfig({
     trustProxy: false,
     // PostgreSQL connection, e.g. postgres://poster:…@db:5432/poster_nfc (NUXT_DATABASE_URL). Server-only.
     databaseUrl: '',
+    // Folder for uploaded files (NUXT_UPLOAD_DIR). Empty: `.data/uploads` next to the app. Docker: /app/uploads (a volume).
+    uploadDir: '',
     public: {
       // The canvas editor is built but outside the V1 scope agreed with the client (upload only).
       // Turn on with NUXT_PUBLIC_CANVAS_EDITOR=true.
