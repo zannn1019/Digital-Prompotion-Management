@@ -1,7 +1,14 @@
 import type { Poster, PosterState } from '../types'
 
-/** Fixed "today" so dummy schedules behave the same on every run. */
-export const TODAY = '2026-10-27'
+// The app's calendar runs on Jakarta time (WIB): "today" changes at midnight WIB, on the server
+// and in every browser, whatever their own time zone.
+const JAKARTA_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' })
+const JAKARTA_TIME = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+
+/** Today's date in Jakarta, as YYYY-MM-DD. */
+export function today(now: Date = new Date()): string {
+  return JAKARTA_DATE.format(now)
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 const MONTHS_LONG = [
@@ -61,8 +68,8 @@ export function addDays(iso: string, n: number) {
   return `${d.getFullYear()}-${m}-${day}`
 }
 
-export function relDays(iso: string) {
-  const n = daysBetween(TODAY, iso)
+export function relDays(iso: string, from: string = today()) {
+  const n = daysBetween(from, iso)
   if (n === 0) return 'hari ini'
   if (n === 1) return 'besok'
   if (n === -1) return 'kemarin'
@@ -77,15 +84,15 @@ export function fmtBytes(n: number) {
   return n >= 1048576 ? `${(n / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.round(n / 1000)} KB`
 }
 
-export function posterState(p: Poster, today = TODAY): PosterState {
+export function posterState(p: Poster, on: string = today()): PosterState {
   if (p.archived) return 'arsip'
   if (p.status !== 'published') return 'draft'
-  if (p.start > today) return 'terjadwal'
-  if (p.end < today) return 'berakhir'
+  if (p.start > on) return 'terjadwal'
+  if (p.end < on) return 'berakhir'
   return 'tayang'
 }
 
-export function nowStamp() {
-  const d = new Date()
-  return `${TODAY} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+/** Now in Jakarta, as `YYYY-MM-DD HH:mm`. */
+export function nowStamp(now: Date = new Date()): string {
+  return `${today(now)} ${JAKARTA_TIME.format(now)}`
 }

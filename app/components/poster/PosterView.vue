@@ -84,9 +84,10 @@ function otherHref(p: PublicPoster) {
           <span class="flex size-[72px] items-center justify-center rounded-[22px] bg-brand-tint text-brand-link">
             <component :is="view.kind === 'notfound' ? Link2 : Hospital" class="size-9" aria-hidden="true" />
           </span>
-          <h1 class="mt-1 text-[28px] font-black tracking-tight @3xl:text-4xl">
+          <!-- In an admin preview the admin page already has its h1. -->
+          <component :is="preview ? 'h2' : 'h1'" class="mt-1 text-[28px] font-black tracking-tight @3xl:text-4xl">
             {{ view.kind === 'notfound' ? 'Halaman tidak tersedia' : 'Selamat datang' }}
-          </h1>
+          </component>
           <p class="max-w-[40ch] text-[15px] leading-relaxed text-slate-700 @3xl:text-base">
             {{
               view.kind === 'notfound'
@@ -157,7 +158,7 @@ function otherHref(p: PublicPoster) {
               failed[featured.id] ? 'mt-4 rounded-3xl' : '-mx-4 -mt-5 rounded-t-3xl',
             ]"
           >
-            <PosterDetail :poster="featured" :doc-href="clickHref(featured.id, 'doc')" large />
+            <PosterDetail :poster="featured" :doc-href="clickHref(featured.id, 'doc')" large :preview="preview" />
             <div v-if="contactButtons.length" class="hidden flex-wrap gap-2.5 border-t pt-4 @3xl:flex">
               <PosterContactLink
                 v-for="(b, i) in contactButtons"

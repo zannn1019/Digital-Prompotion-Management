@@ -4,7 +4,7 @@ import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import type { AnnouncementLevel, Poster, PublishStatus } from '#shared/types'
 import { ANNOUNCEMENT_LEVEL } from '#shared/constants'
-import { TODAY, addDays } from '#shared/utils/format'
+import { today, addDays } from '#shared/utils/format'
 
 const props = defineProps<{ poster?: Poster }>()
 const { errors, submit } = useFieldErrors()
@@ -12,8 +12,8 @@ const { errors, submit } = useFieldErrors()
 const form = reactive({
   text: props.poster?.text ?? '',
   level: (props.poster?.level ?? 'penting') as AnnouncementLevel,
-  start: props.poster?.start ?? TODAY,
-  end: props.poster?.end ?? addDays(TODAY, 7),
+  start: props.poster?.start ?? today(),
+  end: props.poster?.end ?? addDays(today(), 7),
 })
 const { markSaved } = useDirtyGuard(() => form)
 const endBeforeStart = computed(() => form.end < form.start)

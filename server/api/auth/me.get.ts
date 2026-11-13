@@ -1,4 +1,4 @@
-export default defineEventHandler(event => {
-  const user = currentUser(event)
+export default defineEventHandler(async event => {
+  const user = await currentUser(event)
   return user ? publicUser(user) : null
 })

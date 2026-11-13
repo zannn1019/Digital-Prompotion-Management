@@ -1,19 +1,19 @@
 import { posterState } from '#shared/utils/format'
 
 /** A file visitors may see: the image or brochure of a live poster, or the site logo. */
-function isPublic(url: string) {
-  if (db.settings.logoUrl === url) return true
-  return db.posters.some(p => (p.imageUrl === url || p.brochureUrl === url) && posterState(p) === 'tayang')
+async function isPublic(url: string) {
+  if ((await (await useSettingsRepo()).get()).logoUrl === url) return true
+  return (await (await useContent()).postersUsingFile(url)).some(p => posterState(p) === 'tayang')
 }
 
 // Signed-in staff can open every upload (drafts, previews). Visitors only get files that are live,
 // so draft posters and brochures stay private until they are published.
-export default defineEventHandler(event => {
+export default defineEventHandler(async event => {
   const id = getRouterParam(event, 'id') ?? ''
-  const file = uploads.get(id)
-  const viewer = currentUser(event)
+  const file = await (await useUploads()).read(id)
+  const viewer = file ? await currentUser(event) : null
   // Someone who still has a temporary password sees only what visitors see.
-  const visible = file && (isPublic(`/api/uploads/${id}`) || (viewer && !viewer.mustChangePassword))
+  const visible = file && ((viewer && !viewer.mustChangePassword) || (await isPublic(`/api/uploads/${id}`)))
   // Same answer for "missing" and "not public yet".
   if (!file || !visible) throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan.' })
   setResponseHeaders(event, {

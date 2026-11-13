@@ -1,7 +1,7 @@
 import { randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto'
 
 // Password hashing for the prototype: scrypt with a random 16-byte salt per password, compared in
-// constant time. Hashes live in a store of their own (db.credentials), never on the User object,
+// constant time. Hashes live in a table of their own (credentials), never on the User object,
 // so no API response can include them. Pure logic, no auto-imports, so tests can use it.
 // Request-time hashing runs on Node's thread pool (async scrypt): one hash takes ~40 ms of CPU, and the
 // synchronous version would stop the whole server for that long on every login attempt.
@@ -55,22 +55,4 @@ export async function verifyPassword(password: string, stored: PasswordHash | un
 /** One-time password shown once to the admin; the user must change it at first sign-in. */
 export function tempPassword() {
   return randomBytes(9).toString('base64url')
-}
-
-/** Password hashes by user ID. */
-export function createCredentialStore() {
-  const hashes = new Map<string, PasswordHash>()
-  return {
-    /** Start-up seeding only. */
-    seed(userId: string, password: string) {
-      hashes.set(userId, hashPasswordSync(password))
-    },
-    async set(userId: string, password: string) {
-      hashes.set(userId, await hashPassword(password))
-    },
-    verify(userId: string | undefined, password: string) {
-      return verifyPassword(password, userId ? hashes.get(userId) : undefined)
-    },
-    has: (userId: string) => hashes.has(userId),
-  }
 }

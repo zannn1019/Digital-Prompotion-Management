@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { addDays, fmtDate, nowStamp } from '#shared/utils/format'
+import { addDays, fmtDate } from '#shared/utils/format'
 
 // Quick "Perpanjang" from the dashboard: moves only the end date, so the
 // content maker does not have to walk through the whole poster form.
@@ -13,17 +13,15 @@ const schema = z
   .strict()
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
-  const poster = findPosterOr404(getRouterParam(event, 'id'))
+  const user = await requireUser(event)
+  const poster = await findPosterOr404(getRouterParam(event, 'id'))
   const { end } = await parseBody(event, schema)
   // After the current end, and at most a year past it (a typo like 9999 can't keep a poster live forever).
   const problem = extendEndProblem(poster.end, end)
   if (problem) throw createError({ statusCode: 422, statusMessage: 'Periksa isian', data: { errors: { end: problem } } })
   const before = fmtDate(poster.end)
-  poster.end = end
-  poster.updatedAt = nowStamp()
-  poster.updatedBy = user.id
-  logAudit(
+  const updated = await (await useContent()).patchPoster(poster.id, { end }, user.id)
+  await logAudit(
     user.id,
     'Memperpanjang',
     poster.kind === 'pengumuman' ? 'Pengumuman' : 'Poster',
@@ -31,5 +29,5 @@ export default defineEventHandler(async event => {
     `s/d ${before}`,
     `s/d ${fmtDate(end)}`,
   )
-  return poster
+  return updated
 })

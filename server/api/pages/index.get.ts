@@ -1,7 +1,5 @@
-export default defineEventHandler(event => {
-  requireUser(event)
-  return db.pages.map(pg => ({
-    ...pg,
-    cardCount: db.cards.filter(c => c.pageId === pg.id && c.status === 'aktif').length,
-  }))
+export default defineEventHandler(async event => {
+  await requireUser(event)
+  const [list, counts] = await Promise.all([(await useContent()).listPages(), (await useCardsRepo()).activeCountByPage()])
+  return list.map(pg => ({ ...pg, cardCount: counts.get(pg.id) ?? 0 }))
 })

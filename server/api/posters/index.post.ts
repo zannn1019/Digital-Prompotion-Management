@@ -1,22 +1,15 @@
-import type { Poster } from '#shared/types'
-import { fmtRange, nowStamp } from '#shared/utils/format'
+import { shortenAtWord } from '#shared/utils/text'
+import { fmtRange } from '#shared/utils/format'
 
 export default defineEventHandler(async event => {
-  const user = requireUser(event)
+  const user = await requireUser(event)
   const input = await parseBody(event, posterSchema)
 
   const { pageIds, ...fields } = input.kind === 'gambar' ? input : { ...input, pageIds: undefined }
-  const poster: Poster = {
-    ...fields,
-    id: nextId(input.kind === 'pengumuman' ? 'a' : 'p'),
-    name: fields.name || (input.kind === 'pengumuman' ? input.text.slice(0, 40) : ''),
-    archived: false,
-    updatedAt: nowStamp(),
-    updatedBy: user.id,
-  }
-  db.posters.unshift(poster)
-  if (poster.kind === 'gambar') placePoster(poster.id, pageIds)
-  logAudit(
+  const name = fields.name || (input.kind === 'pengumuman' ? shortenAtWord(input.text, 40) : '')
+  // Only image posters go on pages; announcements show on every page.
+  const poster = await (await useContent()).createPoster({ ...fields, name }, user.id, input.kind === 'gambar' ? pageIds : undefined)
+  await logAudit(
     user.id,
     poster.status === 'published' ? 'Menerbitkan' : 'Membuat',
     poster.kind === 'pengumuman' ? 'Pengumuman' : 'Poster',

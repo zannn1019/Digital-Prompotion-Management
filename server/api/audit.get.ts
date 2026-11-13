@@ -1,4 +1,5 @@
-export default defineEventHandler(event => {
-  requireUser(event, 'super')
-  return db.audit.map(a => ({ ...a, userName: db.users.find(u => u.id === a.userId)?.name ?? '' }))
+export default defineEventHandler(async event => {
+  await requireUser(event, 'super')
+  const names = await (await useUsers()).names()
+  return (await (await useAudit()).list()).map(a => ({ ...a, userName: names.get(a.userId) ?? '' }))
 })

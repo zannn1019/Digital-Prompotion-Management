@@ -1,4 +1,4 @@
-export default defineEventHandler(event => {
-  requireUser(event, 'super')
-  return db.users.map(publicUser)
+export default defineEventHandler(async event => {
+  await requireUser(event, 'super')
+  return (await (await useUsers()).list()).map(publicUser)
 })

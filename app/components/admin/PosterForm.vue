@@ -9,7 +9,7 @@ import { designText } from '#shared/design'
 import type { PosterDesign } from '#shared/design'
 import type { ContactButton, Page, Poster, PosterCategory, PublishStatus } from '#shared/types'
 import { POSTER_CATEGORY, POSTER_LIMITS } from '#shared/constants'
-import { TODAY, addDays } from '#shared/utils/format'
+import { today, addDays } from '#shared/utils/format'
 import type { UploadedFile } from '~/utils/upload'
 
 const props = defineProps<{ poster?: Poster & { pageIds?: string[] } }>()
@@ -37,8 +37,8 @@ const form = reactive({
   contacts: (p?.buttons ?? ['wa', 'tel']).filter(b => b !== 'doc') as ContactButton[],
   /** Internal name for the team's list; defaults to the title. */
   name: p?.name ?? '',
-  start: p?.start ?? TODAY,
-  end: p?.end ?? addDays(TODAY, 29),
+  start: p?.start ?? today(),
+  end: p?.end ?? addDays(today(), 29),
   pageIds: [...(p?.pageIds ?? [])],
   /** Set when the image comes from the canvas editor (hidden in V1). */
   design: (p?.design ?? null) as PosterDesign | null,
@@ -97,7 +97,10 @@ function checkStep1() {
   if (!form.title.trim()) e.title = 'Isian ini wajib diisi.'
   if (!form.description.trim()) e.description = 'Isian ini wajib. Tulis 1–2 kalimat penjelasan.'
   errors.value = e
-  if (Object.keys(e).length) toast.error(`Ada ${Object.keys(e).length} isian yang perlu diperbaiki. Lihat tanda merah.`)
+  if (Object.keys(e).length) {
+    toast.error(`Ada ${Object.keys(e).length} isian yang perlu diperbaiki. Lihat tanda merah.`)
+    void focusFirstError()
+  }
   return !Object.keys(e).length
 }
 function next() {
@@ -140,7 +143,10 @@ async function save(status: PublishStatus) {
   saving.value = null
   if (!res) {
     // Send the user back to whichever step holds the problem.
-    if (Object.keys(errors.value).some(k => STEP1_FIELDS.includes(k))) step.value = 1
+    if (Object.keys(errors.value).some(k => STEP1_FIELDS.includes(k))) {
+      step.value = 1
+      void focusFirstError()
+    }
     return
   }
   markSaved()

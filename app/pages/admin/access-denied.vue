@@ -7,6 +7,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Akses ditolak' })
 
 <template>
   <AdminEmptyState
+    :level="1"
     :icon="Lock"
     title="Halaman ini khusus Super Admin"
     description="Akun Anda (Staff Konten) tidak memiliki akses ke halaman ini. Hubungi Super Admin bila Anda membutuhkannya."

@@ -1,11 +1,13 @@
 import { posterState } from '#shared/utils/format'
 
-export default defineEventHandler(event => {
-  requireUser(event)
-  return db.posters.map(p => ({
+export default defineEventHandler(async event => {
+  await requireUser(event)
+  const content = await useContent()
+  const [list, pagesOf, names] = await Promise.all([content.listPosters(), content.pagesOfPosters(), (await useUsers()).names()])
+  return list.map(p => ({
     ...p,
     state: posterState(p),
-    pages: db.pages.filter(pg => pg.posterIds.includes(p.id)).map(pg => ({ id: pg.id, name: pg.name })),
-    updatedByName: db.users.find(u => u.id === p.updatedBy)?.name ?? '',
+    pages: pagesOf.get(p.id) ?? [],
+    updatedByName: names.get(p.updatedBy) ?? '',
   }))
 })

@@ -1,4 +1,4 @@
-export default defineEventHandler(event => {
-  requireUser(event)
-  return db.settings
+export default defineEventHandler(async event => {
+  await requireUser(event)
+  return (await useSettingsRepo()).get()
 })

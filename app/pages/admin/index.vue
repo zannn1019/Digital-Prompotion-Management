@@ -3,7 +3,7 @@ import { Plus } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { fmtDate, fmtDateLong, fmtDateTime, fmtNumber, relDays, daysBetween, TODAY } from '#shared/utils/format'
+import { fmtDate, fmtDateLong, fmtDateTime, fmtNumber, relDays, daysBetween, today } from '#shared/utils/format'
 
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Beranda' })
 const { user } = useSession()
@@ -41,7 +41,7 @@ const kpis = computed(() => {
   <div>
     <AdminPageHeader
       :title="`${greeting}, ${user?.name.split(' ')[0] ?? ''}`"
-      :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(TODAY)}`"
+      :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(today())}`"
     >
       <Button as-child class="h-11"
         ><NuxtLink to="/admin/posters/new"><Plus class="size-4" />Buat poster</NuxtLink></Button
@@ -58,16 +58,17 @@ const kpis = computed(() => {
     </AdminEmptyState>
 
     <template v-else>
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <!-- Two per row on a phone: four tall cards one under the other pushed everything else far down. -->
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <template v-if="status === 'pending'">
           <Card v-for="i in 4" :key="i"
             ><CardContent class="py-6"><AdminTableSkeleton :rows="1" /></CardContent
           ></Card>
         </template>
-        <Card v-for="k in kpis" v-else :key="k.label" class="gap-1 py-5">
-          <CardContent>
+        <Card v-for="k in kpis" v-else :key="k.label" class="gap-1 py-4 sm:py-5">
+          <CardContent class="px-4 sm:px-6">
             <div class="text-sm font-medium text-muted-foreground">{{ k.label }}</div>
-            <div class="mt-1.5 text-3xl font-bold tracking-tight">{{ k.value }}</div>
+            <div class="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{{ k.value }}</div>
             <div class="mt-0.5 text-[13px] text-muted-foreground">
               <span
                 v-if="k.delta !== undefined && k.delta !== null"
@@ -90,6 +91,7 @@ const kpis = computed(() => {
           <AdminTableSkeleton v-if="status === 'pending'" :rows="3" />
           <AdminEmptyState
             v-else-if="!data?.expiring.length"
+            :level="3"
             title="Tidak ada poster yang segera berakhir"
             description="Semua poster tayang masih aman untuk 7 hari ke depan."
           />
@@ -109,7 +111,7 @@ const kpis = computed(() => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <AdminStatusPill :tone="daysBetween(TODAY, p.end) <= 5 ? 'danger' : 'warning'">{{ relDays(p.end) }}</AdminStatusPill>
+                  <AdminStatusPill :tone="daysBetween(today(), p.end) <= 5 ? 'danger' : 'warning'">{{ relDays(p.end) }}</AdminStatusPill>
                   <div class="mt-0.5 text-xs text-muted-foreground">{{ fmtDate(p.end) }}</div>
                 </TableCell>
                 <TableCell class="pr-5 text-right">

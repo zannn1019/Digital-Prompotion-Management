@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { z } from 'zod'
 import { MAX_ELEMENTS, MAX_FONT, MIN_FONT } from '#shared/design'
 import { POSTER_LIMITS } from '#shared/constants'
-import { TODAY, addDays, daysBetween, fmtDate } from '#shared/utils/format'
+import { today, addDays, daysBetween, fmtDate } from '#shared/utils/format'
 import { MIN_PASSWORD_LENGTH } from './passwords'
 
 // Every write endpoint parses its body through a strict schema: unknown fields
@@ -251,7 +251,7 @@ const optionalDate = z.preprocess(v => (v === '' ? undefined : v), calendarDate.
 export const analyticsQuerySchema = z
   .object({ from: optionalDate, to: optionalDate })
   .transform(q => {
-    const to = q.to ?? TODAY
+    const to = q.to ?? today()
     return { to, from: q.from ?? addDays(to, -29) }
   })
   .superRefine((v, ctx) => {

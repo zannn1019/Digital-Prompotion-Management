@@ -6,17 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { TODAY, addDays, fmtNumber } from '#shared/utils/format'
+import { today, addDays, fmtNumber } from '#shared/utils/format'
 
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Analitik' })
 
 const range = ref<7 | 30 | 90 | 0>(30)
-const from = ref(addDays(TODAY, -29))
-const to = ref(TODAY)
+const from = ref(addDays(today(), -29))
+const to = ref(today())
 watch(range, r => {
   if (r) {
-    to.value = TODAY
-    from.value = addDays(TODAY, -(r - 1))
+    to.value = today()
+    from.value = addDays(today(), -(r - 1))
   }
 })
 const { data, status, error, refresh } = useFetch('/api/analytics', { query: { from, to }, server: false })

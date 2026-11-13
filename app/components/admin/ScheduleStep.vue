@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Step 2 of the poster form: when it shows, on which pages, and a summary.
 import type { Page } from '#shared/types'
-import { TODAY, addDays, daysBetween, fmtDate, fmtRange } from '#shared/utils/format'
+import { today, addDays, daysBetween, fmtDate, fmtRange } from '#shared/utils/format'
 
 const start = defineModel<string>('start', { required: true })
 const end = defineModel<string>('end', { required: true })
@@ -83,7 +83,7 @@ const badRange = computed(() => end.value < start.value)
           <b>Halaman:</b> {{ pageIds.length }} halaman ·
           {{ pages.filter(p => pageIds.includes(p.id)).reduce((n, p) => n + p.cardCount, 0) }} kartu NFC
         </li>
-        <li><b>Setelah diterbitkan:</b> {{ start > TODAY ? `terjadwal, tampil mulai ${fmtDate(start)}` : 'langsung tayang' }}</li>
+        <li><b>Setelah diterbitkan:</b> {{ start > today() ? `terjadwal, tampil mulai ${fmtDate(start)}` : 'langsung tayang' }}</li>
       </ul>
     </section>
   </div>

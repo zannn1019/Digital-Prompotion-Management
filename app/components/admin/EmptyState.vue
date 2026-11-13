@@ -2,7 +2,14 @@
 import type { Component } from 'vue'
 import { TriangleAlert } from '@lucide/vue'
 
-defineProps<{ title: string; description?: string; icon?: Component; error?: boolean }>()
+// `level` sets the heading level: 2 by default (a section under the page's h1); 1 when the empty state
+// is the whole page, e.g. "Akses ditolak".
+const props = withDefaults(defineProps<{ title: string; description?: string; icon?: Component; error?: boolean; level?: 1 | 2 | 3 }>(), {
+  description: undefined,
+  icon: undefined,
+  level: 2,
+})
+const headingTag = computed(() => `h${props.level}`)
 </script>
 
 <template>
@@ -12,7 +19,7 @@ defineProps<{ title: string; description?: string; icon?: Component; error?: boo
     >
       <component :is="error ? TriangleAlert : icon" v-if="error || icon" class="size-7" aria-hidden="true" />
     </div>
-    <h3 class="text-lg font-semibold">{{ title }}</h3>
+    <component :is="headingTag" class="text-lg font-semibold">{{ title }}</component>
     <p v-if="description" class="max-w-[44ch] text-sm text-muted-foreground">{{ description }}</p>
     <div v-if="$slots.default" class="mt-2 flex flex-wrap justify-center gap-2"><slot /></div>
   </div>

@@ -5,9 +5,10 @@ Step by step for an **Ubuntu 22.04 / 24.04** server you can reach over SSH with 
 What this sets up:
 
 - The app (Nuxt: pages and API in one) runs in **one Docker container**, reachable only from the server itself on `127.0.0.1:3000`.
+- **PostgreSQL** runs in a second container, reachable only from the app. All data (users, posters, pages, cards, analytics, audit log, settings) is in its `pgdata` volume; uploaded files are in the `uploads` volume. Restarts and redeploys keep both.
 - **Nginx** on the server sits in front of it: HTTPS, compression, the upload size limit, a limit on login attempts and (optionally) a password for the admin side.
 
-Before you start, know that this V1 keeps **all data in memory**: every restart or redeploy of the container resets posters, cards, users and passwords to the seed data. Run **one** container only (no replicas).
+Run **one** app container only (no replicas): login lockouts, rate limits and the tap dedupe window live in its memory. Never run `docker compose down -v`: `-v` deletes the volumes, which is all the data.
 
 Files in the repository: `Dockerfile` (builds, runs the tests, then a small run image), `docker-compose.yml` (the one service, hardened), `.dockerignore`, `.env.example` (settings template).
 
@@ -53,11 +54,13 @@ cd /opt/poster-nfc && cp .env.example .env && chmod 600 .env && nano .env
 
 ```ini
 NUXT_PUBLIC_SITE_URL=https://staging.example.co.id
+POSTGRES_PASSWORD=<long random password, e.g. from: openssl rand -base64 24>
 NUXT_SEED_PASSWORD=<at least 10 characters, shared only with the team>
 NUXT_PUBLIC_DEMO_LOGIN=false
 NUXT_TRUST_PROXY=true
 ```
 
+- `POSTGRES_PASSWORD` protects the PostgreSQL container that `docker compose` starts next to the app (its data is kept in the `pgdata` volume). Compose refuses to start without it. The database is only reachable from the app container. The app creates and updates its tables itself at start-up (migrations).
 - `NUXT_PUBLIC_SITE_URL` must be the exact address people open. It goes onto the NFC cards (`<site>/k/<code>`) and it is the only origin allowed to save changes. **Set it before writing real cards**: a written card keeps its address.
 - `NUXT_SEED_PASSWORD` is the password of the only seeded account, the Super Admin `admin@rs-bethesda.test`. The app starts with no posters, pages or cards. The app refuses to start if it is shorter than 10 characters, so the placeholder in `.env.example` must be replaced.
 - `NUXT_TRUST_PROXY=true` is correct because Nginx is in front and the container is only reachable through it.
@@ -210,19 +213,49 @@ In the browser:
 
 ## 9. Updating
 
-Keep the running image as `previous`, then build and start the new version:
+Make a backup first (step 11), keep the running image as `previous`, then build and start the new version:
 
 ```bash
 cd /opt/poster-nfc && sudo docker tag poster-nfc:latest poster-nfc:previous && git pull && sudo docker compose up -d --build
 ```
 
-(Without git, copy the new source over the folder instead of `git pull`.) The new container replaces the old one; the in-memory data starts over. Clean up old images now and then: `sudo docker image prune`.
+(Without git, copy the new source over the folder instead of `git pull`.) The new container replaces the old one and applies any new database migrations at start-up; data and uploads stay. Clean up old images now and then: `sudo docker image prune`.
 
 ## 10. Rolling back
 
 ```bash
 cd /opt/poster-nfc && sudo docker tag poster-nfc:previous poster-nfc:latest && sudo docker compose up -d --no-build
 ```
+
+Migrations only add to the database, so the previous version keeps working on it. If an update ever needs to be undone completely, restore the backup taken before it (step 11).
+
+## 11. Backups and restoring
+
+Everything to keep is in two places: the database and the uploads volume. Back up both, daily and before every update.
+
+**Back up** (writes two files into `/opt/poster-nfc/backups`):
+
+```bash
+cd /opt/poster-nfc && mkdir -p backups && sudo docker compose exec -T db pg_dump -U poster -d poster_nfc -Fc > backups/db-$(date +%F).dump && sudo docker run --rm -v poster-nfc_uploads:/u:ro -v "$PWD/backups":/b alpine tar czf /b/uploads-$(date +%F).tgz -C /u .
+```
+
+The volume is named after the project folder (`poster-nfc_uploads` for `/opt/poster-nfc`); `sudo docker volume ls` shows the exact name.
+
+**Daily, automatically:** save the command above as `/opt/poster-nfc/backup.sh`, make it executable (`chmod +x`), then add it to root's crontab (`sudo crontab -e`) for 02:00 every night:
+
+```cron
+0 2 * * * /opt/poster-nfc/backup.sh && find /opt/poster-nfc/backups -mtime +14 -delete
+```
+
+The `find` keeps 14 days. Copy the backups off the server as well (another machine or storage), or a lost server takes them with it.
+
+**Restore** (replaces everything with the backup, after stopping the app):
+
+```bash
+cd /opt/poster-nfc && sudo docker compose stop app && sudo docker compose exec -T db pg_restore -U poster -d poster_nfc --clean --if-exists < backups/db-2026-11-13.dump && sudo docker run --rm -v poster-nfc_uploads:/u -v "$PWD/backups":/b alpine sh -c "tar xzf /b/uploads-2026-11-13.tgz -C /u && chown -R 1000:1000 /u" && sudo docker compose start app
+```
+
+Use the date of the backup you want. The files are unpacked over the uploads volume: files uploaded after the backup stay, but nothing in the restored database points to them. Try a restore once on a test machine, so you know it works before you need it.
 
 ## Building on your PC instead (optional)
 

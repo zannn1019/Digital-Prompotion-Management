@@ -56,6 +56,7 @@ async function upload(f: File | undefined) {
         class="sr-only"
         :accept="UPLOAD.accept"
         aria-label="Pilih file poster"
+        :aria-invalid="!!(localError || error)"
         @change="upload(($event.target as HTMLInputElement).files?.[0])"
       />
       <Button type="button" class="mt-1 h-12 px-5 text-base" :disabled="uploading" @click="input?.click()">{{

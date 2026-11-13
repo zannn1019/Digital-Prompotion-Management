@@ -5,7 +5,7 @@
 import { Check, Nfc, TriangleAlert, X } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import type { CardRow } from '~/composables/useCards'
-import { TODAY } from '#shared/utils/format'
+import { today } from '#shared/utils/format'
 
 definePageMeta({ middleware: 'auth', layout: false })
 useHead({ title: 'Tulis Kartu NFC' })
@@ -15,7 +15,7 @@ const { supported, secureContext, writeUrl, cancel: cancelNfc } = useWebNfc()
 const { copy } = useCopy()
 
 // Cards still to write, plus those written today (to show progress).
-const cards = computed(() => (all.value ?? []).filter(c => c.writeStatus !== 'sudah' || c.writtenAt?.startsWith(TODAY)))
+const cards = computed(() => (all.value ?? []).filter(c => c.writeStatus !== 'sudah' || c.writtenAt?.startsWith(today())))
 const done = computed(() => cards.value.filter(c => c.writeStatus === 'sudah').length)
 
 const simulate = ref(false)
