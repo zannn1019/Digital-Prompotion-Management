@@ -54,7 +54,7 @@ cd /opt/poster-nfc && cp .env.example .env && chmod 600 .env && nano .env
 
 ```ini
 NUXT_PUBLIC_SITE_URL=https://staging.example.co.id
-POSTGRES_PASSWORD=<long random password, e.g. from: openssl rand -base64 24>
+POSTGRES_PASSWORD=<letters and digits only, e.g. from: openssl rand -hex 24>
 NUXT_SEED_PASSWORD=<at least 10 characters, shared only with the team>
 NUXT_PUBLIC_DEMO_LOGIN=false
 NUXT_TRUST_PROXY=true
