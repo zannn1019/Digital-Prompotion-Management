@@ -3,11 +3,12 @@
 // the API routes are the only code that touches them.
 import type { AuditEntry, Card, DailyRow, Page, Poster, Settings, User } from '#shared/types'
 import { nowStamp } from '#shared/utils/format'
+import { DEFAULT_SETTINGS, SEED_ADMIN } from '../db/defaults'
 import { DEMO_PASSWORD, createCredentialStore, seedPassword } from './passwords'
 
 // The app starts empty apart from one Super Admin, who creates posters, pages, cards and users.
 // `.test` is a reserved domain, so the address can't belong to anyone outside.
-const users: User[] = [{ id: 'u1', name: 'Admin', email: 'admin@rs-bethesda.test', role: 'super', status: 'active', lastLogin: null }]
+const users: User[] = [{ id: 'u1', ...SEED_ADMIN, status: 'active', lastLogin: null }]
 
 const posters: Poster[] = []
 
@@ -17,22 +18,7 @@ const cards: Card[] = []
 
 const audit: AuditEntry[] = []
 
-const settings: Settings = {
-  company: 'RS Bethesda Yogyakarta',
-  tagline: 'Tolong Dulu Urusan Belakang',
-  logoUrl: '/brand/logo.png',
-  address: 'Jl. Jend. Sudirman No. 70, Yogyakarta 55224',
-  // Placeholders: replace with the Marketing team's real WhatsApp and phone numbers.
-  wa: '628000000001',
-  phone: '(0274) 586688',
-  email: 'marketing@rs-bethesda.test',
-  hours: 'Senin–Jumat, 08.00–16.00 WIB',
-  website: 'https://www.bethesda.or.id',
-  brochure: 'https://www.bethesda.or.id',
-  retentionAudit: 365,
-  retentionTap: 730,
-  baseUrl: 'https://poster.rs-bethesda.test/k/',
-}
+const settings: Settings = { ...DEFAULT_SETTINGS }
 
 // Taps and clicks per card per day; filled by real visits (server/utils/visits.ts).
 const daily: DailyRow[] = []

@@ -23,6 +23,8 @@ ENV NODE_ENV=production \
 
 # Owned by root, run as the unprivileged `node` user: the app can't change its own code.
 COPY --from=build /app/.output ./.output
+# SQL migrations, applied by the app at start-up (server/plugins/database.ts).
+COPY --from=build /app/server/db/migrations ./server/db/migrations
 
 USER node
 EXPOSE 3000
