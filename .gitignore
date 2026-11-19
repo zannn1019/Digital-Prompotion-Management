@@ -15,3 +15,5 @@ dist
 # Demo video output
 /video/
 video-render.log
+
+.agents/skills

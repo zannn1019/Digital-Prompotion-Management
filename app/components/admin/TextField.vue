@@ -18,6 +18,10 @@ const props = defineProps<{
   placeholder?: string
   /** id of a <datalist> with suggestions */
   list?: string
+  /** e.g. current-password / new-password, so password managers can fill and suggest. */
+  autocomplete?: string
+  /** Keyboard to show on phones, e.g. numeric. */
+  inputmode?: 'text' | 'numeric' | 'tel' | 'email' | 'url' | 'decimal' | 'search'
 }>()
 
 const length = computed(() => String(model.value ?? '').length)
@@ -28,7 +32,10 @@ const counterClass = computed(() => {
   return 'text-muted-foreground'
 })
 const describedBy = computed(
-  () => [props.error && `${props.id}-err`, props.hint && `${props.id}-hint`].filter(Boolean).join(' ') || undefined,
+  () =>
+    [props.error && `${props.id}-err`, props.hint && `${props.id}-hint`]
+      .filter(Boolean)
+      .join(' ') || undefined,
 )
 const invalid = computed(() => !!props.error || (!!props.max && length.value > props.max))
 </script>
@@ -37,7 +44,8 @@ const invalid = computed(() => !!props.error || (!!props.max && length.value > p
   <div class="flex flex-col gap-1.5">
     <div class="flex justify-between gap-2">
       <label :for="id" :class="large ? 'text-[17px] font-semibold' : 'text-sm font-medium'">
-        {{ label }} <span v-if="required" class="text-destructive" aria-hidden="true">*</span>
+        {{ label }}
+        <span v-if="required" class="text-destructive" aria-hidden="true">*</span>
       </label>
       <span v-if="max" :class="['text-sm', counterClass]">{{ length }}/{{ max }}</span>
     </div>
@@ -51,8 +59,8 @@ const invalid = computed(() => !!props.error || (!!props.max && length.value > p
       :aria-describedby="describedBy"
       :aria-required="required"
       :class="[
-        'rounded-md border px-3.5 py-3 leading-relaxed outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive',
-        large ? 'text-[17px]' : 'text-sm',
+        'rounded-md border px-3.5 py-3 leading-relaxed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive',
+        large ? 'text-[17px]' : 'text-base md:text-sm',
       ]"
     />
     <Input
@@ -62,6 +70,8 @@ const invalid = computed(() => !!props.error || (!!props.max && length.value > p
       :type="type ?? 'text'"
       :placeholder="placeholder"
       :list="list"
+      :autocomplete="autocomplete"
+      :inputmode="inputmode"
       :aria-invalid="invalid"
       :aria-describedby="describedBy"
       :aria-required="required"
@@ -71,8 +81,13 @@ const invalid = computed(() => !!props.error || (!!props.max && length.value > p
     <span
       v-if="hint"
       :id="`${id}-hint`"
-      :class="large ? 'text-[15px] leading-relaxed text-muted-foreground' : 'text-xs text-muted-foreground'"
-      >{{ hint }}</span
+      :class="
+        large
+          ? 'text-[15px] leading-relaxed text-muted-foreground'
+          : 'text-xs text-muted-foreground'
+      "
     >
+      {{ hint }}
+    </span>
   </div>
 </template>

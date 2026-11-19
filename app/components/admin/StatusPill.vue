@@ -14,5 +14,12 @@ const cls = computed(
 </script>
 
 <template>
-  <span :class="['inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium', cls]"><slot /></span>
+  <span
+    :class="[
+      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
+      cls,
+    ]"
+  >
+    <slot />
+  </span>
 </template>

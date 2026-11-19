@@ -15,6 +15,27 @@
       "when": 1794559414326,
       "tag": "0001_poster_archived_from",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794975130957,
+      "tag": "0002_marketing_owners",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794976606782,
+      "tag": "0003_marketing_contact_on_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794980140248,
+      "tag": "0004_poster_approval",
+      "breakpoints": true
     }
   ]
 }

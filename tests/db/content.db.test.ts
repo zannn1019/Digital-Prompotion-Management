@@ -37,11 +37,14 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
   let uploadDir: string
 
   beforeAll(async () => {
-    if (!/_test\b/.test(url!)) throw new Error('TEST_DATABASE_URL must name a database ending in _test: it is wiped.')
+    if (!/_test\b/.test(url!))
+      throw new Error('TEST_DATABASE_URL must name a database ending in _test: it is wiped.')
     const conn = createDatabase(url!)
     db = conn.db
     close = () => conn.pool.end()
-    await db.execute(sql`drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;`)
+    await db.execute(
+      sql`drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;`,
+    )
     await runMigrations(db, resolve(process.cwd(), 'server/db/migrations'))
     await seedDatabase(db, 'Rahasia-Tes-2026')
     adminId = (await usersRepo(db).list())[0]!.id
@@ -55,7 +58,10 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
   it('keeps settings across saves and reports what changed', async () => {
     const repo = settingsRepo(db)
     expect(await repo.get()).toEqual(DEFAULT_SETTINGS)
-    const { settings, changed } = await repo.update({ company: 'RS Uji', hours: DEFAULT_SETTINGS.hours })
+    const { settings, changed } = await repo.update({
+      company: 'RS Uji',
+      hours: DEFAULT_SETTINGS.hours,
+    })
     expect(changed).toEqual(['company'])
     expect(settings.company).toBe('RS Uji')
     expect((await repo.get()).company).toBe('RS Uji')
@@ -72,7 +78,11 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
   it('creates posters, places them on pages in order and round-trips every field', async () => {
     const repo = contentRepo(db)
     const page = (await repo.createPage('Halaman Uji'))!
-    const a = await repo.createPoster(image('A', { points: ['satu', 'dua'], price: 'Rp 1', category: 'promo' }), adminId, [page.id])
+    const a = await repo.createPoster(
+      image('A', { points: ['satu', 'dua'], price: 'Rp 1', category: 'promo' }),
+      adminId,
+      [page.id],
+    )
     const b = await repo.createPoster(image('B'), adminId, [page.id])
     expect((await repo.pageById(page.id))!.posterIds).toEqual([a.id, b.id])
     expect(await repo.posterById(a.id)).toMatchObject({
@@ -84,7 +94,10 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
     })
     expect(a).not.toHaveProperty('terms') // empty optional fields are left out, like before
     // Reorder, and drop unknown or duplicate IDs.
-    expect(await repo.setPagePosters(page.id, [b.id, a.id, a.id, 'p-unknown'])).toEqual([b.id, a.id])
+    expect(await repo.setPagePosters(page.id, [b.id, a.id, a.id, 'p-unknown'])).toEqual([
+      b.id,
+      a.id,
+    ])
     // Taking a poster off every page.
     await repo.replacePoster(a.id, image('A2'), adminId, [])
     expect((await repo.pageById(page.id))!.posterIds).toEqual([b.id])
@@ -94,13 +107,19 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
   it('archives and restores, keeps page names unique and one general page', async () => {
     const repo = contentRepo(db)
     const p = await repo.createPoster(image('Arsip'), adminId)
-    expect(await repo.patchPoster(p.id, { archived: true, archivedFrom: 'published' }, adminId)).toMatchObject({
+    expect(
+      await repo.patchPoster(p.id, { archived: true, archivedFrom: 'published' }, adminId),
+    ).toMatchObject({
       archived: true,
       archivedFrom: 'published',
     })
-    expect(await repo.patchPoster(p.id, { archived: false, archivedFrom: null, status: 'published' }, adminId)).not.toHaveProperty(
-      'archivedFrom',
-    )
+    expect(
+      await repo.patchPoster(
+        p.id,
+        { archived: false, archivedFrom: null, status: 'published' },
+        adminId,
+      ),
+    ).not.toHaveProperty('archivedFrom')
     expect(await repo.createPage('halaman uji')).toBeNull() // case-insensitive duplicate
     const other = (await repo.createPage('Lain'))!
     expect(await repo.updatePage(other.id, { name: 'HALAMAN UJI' })).toBe('name-taken')
@@ -117,14 +136,27 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
     expect(created.map(c => c.label)).toEqual(['Lobi 1', 'Lobi 2', 'Lobi 3'])
     expect(new Set(created.map(c => c.code)).size).toBe(3)
     const code = created[0]!.code
-    expect(await repo.recordWrite(code, false, false, adminId)).toMatchObject({ writeStatus: 'gagal' })
-    expect(await repo.recordWrite(code, true, true, adminId)).toMatchObject({ writeStatus: 'sudah', locked: true, writtenBy: adminId })
+    expect(await repo.recordWrite(code, false, false, adminId)).toMatchObject({
+      writeStatus: 'gagal',
+    })
+    expect(await repo.recordWrite(code, true, true, adminId)).toMatchObject({
+      writeStatus: 'sudah',
+      locked: true,
+      writtenBy: adminId,
+    })
     // A later failed attempt doesn't undo the success.
-    expect(await repo.recordWrite(code, false, false, adminId)).toMatchObject({ writeStatus: 'sudah', locked: true })
+    expect(await repo.recordWrite(code, false, false, adminId)).toMatchObject({
+      writeStatus: 'sudah',
+      locked: true,
+    })
     // 20 taps at the same time are all counted.
-    await Promise.all(Array.from({ length: 20 }, () => repo.countTap('2026-11-13', code, page.id, 'tap')))
+    await Promise.all(
+      Array.from({ length: 20 }, () => repo.countTap('2026-11-13', code, page.id, 'tap')),
+    )
     await repo.countTap('2026-11-13', code, page.id, 'bot')
-    await Promise.all(Array.from({ length: 5 }, () => repo.countClick('2026-11-13', code, 'p1|wa', 'click')))
+    await Promise.all(
+      Array.from({ length: 5 }, () => repo.countClick('2026-11-13', code, 'p1|wa', 'click')),
+    )
     const [row] = await repo.statsBetween('2026-11-13', '2026-11-13')
     expect(row).toMatchObject({ card: code, taps: 20, bots: 1, clicks: { 'p1|wa': 5 } })
     expect((await repo.byCode(code))!.lastTap).not.toBeNull()
@@ -134,7 +166,12 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
 
   it('stores uploads on disk under a random ID and refuses anything that is not one', async () => {
     const repo = uploadsRepo(db, uploadDir)
-    const { id } = await repo.save({ data: new Uint8Array([1, 2, 3]), type: 'image/png', name: 'a.png', userId: adminId })
+    const { id } = await repo.save({
+      data: new Uint8Array([1, 2, 3]),
+      type: 'image/png',
+      name: 'a.png',
+      userId: adminId,
+    })
     expect(id).toMatch(/^f[0-9a-f]{32}$/)
     expect(await readdir(uploadDir)).toEqual([id])
     const file = await repo.read(id)
@@ -142,5 +179,76 @@ describe.skipIf(!url)('content in PostgreSQL', () => {
     expect([...file!.data]).toEqual([1, 2, 3])
     for (const bad of ['../etc/passwd', 'f123', `${id}/..`]) expect(await repo.read(bad)).toBeNull()
     expect(await repo.read(`f${'0'.repeat(32)}`)).toBeNull()
+  })
+  it('saves who owns posters, pages and cards, and the marketing user contact', async () => {
+    const users = usersRepo(db)
+    const marketer = await users.create({
+      name: 'Rina',
+      email: 'rina@rs.test',
+      role: 'marketing',
+      password: 'Rahasia-Tes-2026',
+      mustChangePassword: false,
+      wa: '6281234567890',
+    })
+    expect(marketer).toMatchObject({ wa: '6281234567890', phone: null })
+    await users.update(marketer!.id, { phone: '0274 586688' })
+    expect((await users.byId(marketer!.id))?.phone).toBe('0274 586688')
+
+    const content = contentRepo(db)
+    const cards = cardsRepo(db)
+    const p = await content.createPoster(image('Milik Rina', { ownerId: marketer!.id }), adminId)
+    expect((await content.posterById(p.id))?.ownerId).toBe(marketer!.id)
+    // An update without an owner clears it (the form always sends the whole poster).
+    expect((await content.replacePoster(p.id, image('Milik Rina'), adminId))?.ownerId).toBeNull()
+
+    const page = await content.createPage('Halaman Rina', marketer!.id)
+    expect(page?.ownerId).toBe(marketer!.id)
+    await content.updatePage(page!.id, { ownerId: null })
+    expect((await content.pageById(page!.id))?.ownerId).toBeNull()
+
+    const [card] = await cards.create({ count: 1, label: 'Lobi', group: 'RS', pageId: null })
+    expect(card!.ownerId).toBeNull()
+    await cards.setOwner([card!.code], marketer!.id)
+    expect((await cards.byCode(card!.code))?.ownerId).toBe(marketer!.id)
+  })
+
+  it('keeps the live poster until a submitted change is approved, and drops it on rejection', async () => {
+    const content = contentRepo(db)
+    const live = await content.createPoster(image('Promo live', { price: 'Rp 100.000' }), adminId)
+    const page = await content.createPage('Halaman persetujuan')
+
+    // A submitted change waits next to the live poster; visitors still get the old fields.
+    await content.submitChange(
+      live.id,
+      { fields: { ...image('Promo live'), price: 'Rp 90.000' }, pageIds: [page!.id] },
+      adminId,
+    )
+    const waiting = await content.posterById(live.id)
+    expect(waiting?.price).toBe('Rp 100.000')
+    expect(waiting?.pending?.fields.price).toBe('Rp 90.000')
+    expect(waiting?.pending?.by).toBe(adminId)
+
+    // Approving applies the fields and the pages, and clears the request.
+    const approved = await content.approveChange(live.id, adminId)
+    expect(approved?.price).toBe('Rp 90.000')
+    expect(approved?.pending).toBeNull()
+    expect((await content.pageById(page!.id))?.posterIds).toContain(live.id)
+    // Nothing left to approve: a second click finds nothing.
+    expect(await content.approveChange(live.id, adminId)).toBeNull()
+
+    // Rejecting removes the request, keeps the reason, and leaves the live poster alone.
+    await content.submitChange(
+      live.id,
+      { fields: { ...image('Promo live'), price: 'Rp 1' } },
+      adminId,
+    )
+    const rejected = await content.rejectChange(live.id, 'Harga salah.', adminId)
+    expect(rejected?.pending).toBeNull()
+    expect(rejected?.rejection?.note).toBe('Harga salah.')
+    expect(rejected?.price).toBe('Rp 90.000')
+
+    // The next submission clears the old rejection.
+    const again = await content.submitChange(live.id, { fields: image('Promo live') }, adminId)
+    expect(again?.rejection).toBeNull()
   })
 })

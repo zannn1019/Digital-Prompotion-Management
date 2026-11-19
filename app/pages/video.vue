@@ -17,7 +17,9 @@ const time = ref(0)
 const scale = ref(1)
 // Scenes that change real component state derive it from the timeline's time, so seeking works both ways.
 provide('videoTime', time)
-const scenes = ref<Record<string, VideoScene & { $el?: HTMLElement; ready?: () => Promise<void> }>>({})
+const scenes = ref<Record<string, VideoScene & { $el?: HTMLElement; ready?: () => Promise<void> }>>(
+  {},
+)
 let tl: gsap.core.Timeline | null = null
 
 function setRef(id: string) {
@@ -27,7 +29,9 @@ function setRef(id: string) {
 }
 
 function fit() {
-  scale.value = capture ? 1 : Math.min((window.innerWidth - 32) / STAGE.width, (window.innerHeight - 120) / STAGE.height)
+  scale.value = capture
+    ? 1
+    : Math.min((window.innerWidth - 32) / STAGE.width, (window.innerHeight - 120) / STAGE.height)
 }
 
 onMounted(async () => {
@@ -96,12 +100,29 @@ const sceneNow = computed(() => {
 </script>
 
 <template>
-  <div :class="capture ? 'video-capture' : 'flex min-h-screen flex-col items-center gap-4 bg-zinc-900 p-4 text-zinc-100'">
-    <div :style="capture ? undefined : { width: STAGE.width * scale + 'px', height: STAGE.height * scale + 'px' }">
+  <div
+    :class="
+      capture
+        ? 'video-capture'
+        : 'flex min-h-screen flex-col items-center gap-4 bg-zinc-900 p-4 text-zinc-100'
+    "
+  >
+    <div
+      :style="
+        capture
+          ? undefined
+          : { width: STAGE.width * scale + 'px', height: STAGE.height * scale + 'px' }
+      "
+    >
       <div
         id="video-stage"
         class="video-stage relative overflow-hidden"
-        :style="{ width: STAGE.width + 'px', height: STAGE.height + 'px', transform: `scale(${scale})`, transformOrigin: '0 0' }"
+        :style="{
+          width: STAGE.width + 'px',
+          height: STAGE.height + 'px',
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0',
+        }"
       >
         <template v-if="authed">
           <VideoScenesIntro id="scene-intro" :ref="setRef('intro')" />
@@ -117,7 +138,12 @@ const sceneNow = computed(() => {
     </div>
 
     <div v-if="!capture" class="flex w-full max-w-5xl items-center gap-3 text-sm">
-      <button type="button" class="h-10 rounded-md bg-white px-4 font-bold text-zinc-900" :disabled="!ready" @click="toggle">
+      <button
+        type="button"
+        class="h-10 rounded-md bg-white px-4 font-bold text-zinc-900"
+        :disabled="!ready"
+        @click="toggle"
+      >
         {{ playing ? 'Jeda' : 'Putar' }}
       </button>
       <input
@@ -131,7 +157,9 @@ const sceneNow = computed(() => {
         :disabled="!ready"
         @input="scrub"
       />
-      <span class="w-40 tabular-nums">{{ time.toFixed(1) }} / {{ DURATION }} s · {{ sceneNow }}</span>
+      <span class="w-40 tabular-nums">
+        {{ time.toFixed(1) }} / {{ DURATION }} s · {{ sceneNow }}
+      </span>
     </div>
   </div>
 </template>
@@ -150,7 +178,9 @@ const sceneNow = computed(() => {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: radial-gradient(70% 60% at 50% 20%, #ffffff, #f7fafc 70%), linear-gradient(180deg, #ffffff, #e9f3fa);
+  background:
+    radial-gradient(70% 60% at 50% 20%, #ffffff, #f7fafc 70%),
+    linear-gradient(180deg, #ffffff, #e9f3fa);
 }
 /* Captions that sit on top of app screens. */
 .video-cap {

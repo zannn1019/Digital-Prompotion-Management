@@ -1,9 +1,23 @@
 // Labels and display options shared by the app and the server, kept in one place.
-import type { AnnouncementLevel, ContactButton, PosterCategory, PosterState, Role, Theme, UserStatus, WriteStatus } from './types'
+import type {
+  AnnouncementLevel,
+  ContactButton,
+  PosterCategory,
+  PosterState,
+  Role,
+  Theme,
+  UserStatus,
+  WriteStatus,
+} from './types'
 
 export type Tone = 'success' | 'info' | 'warning' | 'danger' | 'muted'
 
-export const ROLE_LABEL: Record<Role, string> = { super: 'Super Admin', staff: 'Staff Konten' }
+export const ROLE_LABEL: Record<Role, string> = {
+  super: 'Super Admin',
+  staff: 'Staff Konten',
+  marketing: 'Marketing',
+  approver: 'Approver',
+}
 
 /**
  * Header a server-rendered poster page uses to tell its own API call who the visitor is, so a tap is
@@ -55,16 +69,43 @@ export const POSTER_CATEGORY: Record<PosterCategory, string> = {
 }
 
 /** Limits for the visitor-page details. The server checks them again. */
-export const POSTER_LIMITS = { title: 60, description: 300, price: 40, priceUnit: 30, listTitle: 40, points: 6, point: 100, terms: 500 }
+export const POSTER_LIMITS = {
+  title: 60,
+  description: 300,
+  price: 40,
+  priceUnit: 30,
+  listTitle: 40,
+  points: 6,
+  point: 100,
+  terms: 500,
+}
 
 /** Poster page colour themes (white text passes WCAG AA on each background). */
 export const THEMES: Record<Theme, { label: string; bg: string; accent: string; ink: string }> = {
-  ungu: { label: 'Ungu', bg: 'linear-gradient(172deg,#120a2b 0%,#2a1263 48%,#4c1d95 100%)', accent: '#5eead4', ink: '#062521' },
-  merah: { label: 'Merah', bg: 'linear-gradient(172deg,#1c0408 0%,#540b18 48%,#8a1125 100%)', accent: '#ffd23f', ink: '#2a1600' },
-  hijau: { label: 'Hijau', bg: 'linear-gradient(172deg,#03150e 0%,#073b29 48%,#0a5a3f 100%)', accent: '#d9f99d', ink: '#12290a' },
+  ungu: {
+    label: 'Ungu',
+    bg: 'linear-gradient(172deg,#120a2b 0%,#2a1263 48%,#4c1d95 100%)',
+    accent: '#5eead4',
+    ink: '#062521',
+  },
+  merah: {
+    label: 'Merah',
+    bg: 'linear-gradient(172deg,#1c0408 0%,#540b18 48%,#8a1125 100%)',
+    accent: '#ffd23f',
+    ink: '#2a1600',
+  },
+  hijau: {
+    label: 'Hijau',
+    bg: 'linear-gradient(172deg,#03150e 0%,#073b29 48%,#0a5a3f 100%)',
+    accent: '#d9f99d',
+    ink: '#12290a',
+  },
 }
 
-export const ANNOUNCEMENT_LEVEL: Record<AnnouncementLevel, { label: string; bar: string; swatch: string }> = {
+export const ANNOUNCEMENT_LEVEL: Record<
+  AnnouncementLevel,
+  { label: string; bar: string; swatch: string }
+> = {
   info: { label: 'Informasi', bar: 'bg-brand-tint text-brand-navy', swatch: 'bg-brand-tint' },
   penting: { label: 'Penting', bar: 'bg-amber-100 text-amber-950', swatch: 'bg-amber-100' },
   darurat: { label: 'Darurat', bar: 'bg-brand-red text-white', swatch: 'bg-brand-red' },

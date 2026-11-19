@@ -4,12 +4,22 @@ import type { Poster } from '#shared/types'
 
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Ubah poster' })
 const route = useRoute()
-const { data, status, refresh } = useFetch<Poster & { pageIds: string[] }>(`/api/posters/${route.params.id}`, { server: false })
+const { data, status, refresh } = useFetch<
+  Poster & {
+    pageIds: string[]
+    ownerName: string | null
+    pendingByName: string | null
+    rejectedByName: string | null
+  }
+>(`/api/posters/${route.params.id}`, { server: false })
 </script>
 
 <template>
   <div>
-    <AdminPageHeader :title="data?.name ?? 'Ubah poster'" :back="{ to: '/admin/posters', label: 'Kembali ke daftar poster' }" />
+    <AdminPageHeader
+      :title="data?.name ?? 'Ubah poster'"
+      :back="{ to: '/admin/posters', label: 'Kembali ke daftar poster' }"
+    />
     <AdminTableSkeleton v-if="status === 'pending'" :rows="6" />
     <AdminEmptyState
       v-else-if="status === 'error' || !data"

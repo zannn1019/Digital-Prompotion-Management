@@ -1,7 +1,14 @@
 // Starting designs for the canvas editor. Every design carries the locked logo
 // and "Informasi" blocks, which take their content from Settings.
 import { BACKGROUNDS, BRAND_HEIGHT, DESIGN_SIZE } from '#shared/design'
-import type { DesignElement, ImageElement, LabelElement, PosterDesign, RectElement, TextElement } from '#shared/design'
+import type {
+  DesignElement,
+  ImageElement,
+  LabelElement,
+  PosterDesign,
+  RectElement,
+  TextElement,
+} from '#shared/design'
 
 const { width: W, height: H } = DESIGN_SIZE
 const M = 48
@@ -61,7 +68,14 @@ export const makePhoto = (p: Partial<ImageElement> = {}): ImageElement => ({
 function brand(): DesignElement[] {
   return [
     { id: newId(), type: 'logo', x: M, y: M, rotation: 0, width: 520 },
-    { id: newId(), type: 'info', x: M, y: H - M - BRAND_HEIGHT.info, rotation: 0, width: W - 2 * M },
+    {
+      id: newId(),
+      type: 'info',
+      x: M,
+      y: H - M - BRAND_HEIGHT.info,
+      rotation: 0,
+      width: W - 2 * M,
+    },
   ]
 }
 
@@ -71,7 +85,12 @@ function design(bg: number, elements: DesignElement[]): PosterDesign {
   return { version: 1, background: { top, bottom }, elements: [...elements, ...brand()] }
 }
 
-export const STARTERS: { id: string; name: string; description: string; make: () => PosterDesign }[] = [
+export const STARTERS: {
+  id: string
+  name: string
+  description: string
+  make: () => PosterDesign
+}[] = [
   {
     id: 'paket',
     name: 'Paket layanan',
@@ -103,7 +122,11 @@ export const STARTERS: { id: string; name: string; description: string; make: ()
         makeText({ text: 'Hemat 30%', y: 230, fontSize: 140, bold: true }),
         makeText({ text: 'MCU Basic untuk karyawan', y: 420, fontSize: 56, bold: true }),
         makeLabel({ text: 'Rp 315.000', x: 300, y: 560, fontSize: 96 }),
-        makeText({ text: 'Normal Rp 450.000 · minimal 20 karyawan\nBerlaku sampai 31 Oktober 2026', y: 780, fontSize: 42 }),
+        makeText({
+          text: 'Normal Rp 450.000 · minimal 20 karyawan\nBerlaku sampai 31 Oktober 2026',
+          y: 780,
+          fontSize: 42,
+        }),
       ]),
   },
   {
@@ -113,9 +136,20 @@ export const STARTERS: { id: string; name: string; description: string; make: ()
     make: () =>
       design(1, [
         makeText({ text: 'Senam Sehat', y: 190, fontSize: 140, bold: true }),
-        makeText({ text: 'Setiap Jumat · 06.30 WIB · Lapangan Utama', y: 360, fontSize: 46, bold: true }),
+        makeText({
+          text: 'Setiap Jumat · 06.30 WIB · Lapangan Utama',
+          y: 360,
+          fontSize: 46,
+          bold: true,
+        }),
         makePhoto({ x: 60, y: 450, width: W - 120, height: 440 }),
-        makeLabel({ text: 'Gratis untuk karyawan', x: 60, y: 930, fontSize: 52, background: '#ffffff' }),
+        makeLabel({
+          text: 'Gratis untuk karyawan',
+          x: 60,
+          y: 930,
+          fontSize: 52,
+          background: '#ffffff',
+        }),
       ]),
   },
   {

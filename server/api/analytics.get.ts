@@ -1,4 +1,5 @@
 import { addDays } from '#shared/utils/format'
+import { byMarketing } from '../utils/marketingStats'
 
 const BUTTON_LABEL: Record<string, string> = { wa: 'WhatsApp', tel: 'Telepon', doc: 'Brosur PDF' }
 
@@ -8,11 +9,12 @@ export default defineEventHandler(async event => {
   const { from, to } = parseQuery(event, analyticsQuerySchema)
   const content = await useContent()
   const cardsRepo = await useCardsRepo()
-  const [rows, cards, pages, posters] = await Promise.all([
+  const [rows, cards, pages, posters, users] = await Promise.all([
     cardsRepo.statsBetween(from, to),
     cardsRepo.list(),
     content.listPages(),
     content.listPosters(),
+    (await useUsers()).list(),
   ])
   const cardBy = new Map(cards.map(c => [c.code, c]))
   const pageName = new Map(pages.map(p => [p.id, p.name]))
@@ -65,6 +67,7 @@ export default defineEventHandler(async event => {
       const [pid, btn] = k.split('|')
       return `${posterName.get(pid!) ?? pid} · ${BUTTON_LABEL[btn!] ?? btn}`
     }),
+    byMarketing: byMarketing(rows, cards, posters, users),
     byCard: Object.entries(byCard)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -75,6 +78,7 @@ export default defineEventHandler(async event => {
           label: card?.label ?? '',
           group: card?.group ?? '',
           page: (card?.pageId && pageName.get(card.pageId)) || 'Halaman umum',
+          owner: (card?.ownerId && users.find(u => u.id === card.ownerId)?.name) || null,
           taps: value,
           clicks: clicksByCard[code] ?? 0,
         }

@@ -27,7 +27,8 @@ const validImage = {
 }
 
 describe('poster validation', () => {
-  it('accepts a valid image poster', () => expect(imagePosterSchema.safeParse(validImage).success).toBe(true))
+  it('accepts a valid image poster', () =>
+    expect(imagePosterSchema.safeParse(validImage).success).toBe(true))
 
   it('rejects unknown fields (no mass assignment)', () => {
     const r = imagePosterSchema.safeParse({ ...validImage, archived: true, updatedBy: 'u1' })
@@ -51,15 +52,23 @@ describe('poster validation', () => {
   })
 
   it('limits announcements to 140 characters', () => {
-    const base = { kind: 'pengumuman', status: 'published', level: 'penting', start: '2026-10-01', end: '2026-10-02' }
+    const base = {
+      kind: 'pengumuman',
+      status: 'published',
+      level: 'penting',
+      start: '2026-10-01',
+      end: '2026-10-02',
+    }
     expect(posterSchema.safeParse({ ...base, text: 'x'.repeat(140) }).success).toBe(true)
     expect(posterSchema.safeParse({ ...base, text: 'x'.repeat(141) }).success).toBe(false)
   })
 })
 
 describe('other schemas', () => {
-  it('cannot set a user to locked directly', () => expect(userPatchSchema.safeParse({ status: 'locked' }).success).toBe(false))
-  it('rejects malformed card codes', () => expect(cardBulkSchema.safeParse({ action: 'map', codes: ['abc'] }).success).toBe(false))
+  it('cannot set a user to locked directly', () =>
+    expect(userPatchSchema.safeParse({ status: 'locked' }).success).toBe(false))
+  it('rejects malformed card codes', () =>
+    expect(cardBulkSchema.safeParse({ action: 'map', codes: ['abc'] }).success).toBe(false))
   it('requires https links in settings', () => {
     expect(settingsSchema.safeParse({ brochure: 'http://x.test/a.pdf' }).success).toBe(false)
     expect(settingsSchema.safeParse({ brochure: 'https://x.test/a.pdf' }).success).toBe(true)
@@ -86,16 +95,25 @@ describe('visitor-page details', () => {
       brochureFile: 'brosur.pdf',
     }
     expect(imagePosterSchema.safeParse(full).success).toBe(true)
-    expect(imagePosterSchema.safeParse({ ...validImage, price: '', points: [], brochureUrl: null }).success).toBe(true)
+    expect(
+      imagePosterSchema.safeParse({ ...validImage, price: '', points: [], brochureUrl: null })
+        .success,
+    ).toBe(true)
   })
 
   it('limits the list to 6 points and rejects unknown categories', () => {
-    expect(imagePosterSchema.safeParse({ ...validImage, points: Array.from({ length: 7 }, () => 'x') }).success).toBe(false)
+    expect(
+      imagePosterSchema.safeParse({ ...validImage, points: Array.from({ length: 7 }, () => 'x') })
+        .success,
+    ).toBe(false)
     expect(imagePosterSchema.safeParse({ ...validImage, category: 'lainnya' }).success).toBe(false)
   })
 
   it('only links brochures and logos that we host', () => {
-    expect(imagePosterSchema.safeParse({ ...validImage, brochureUrl: 'https://evil.test/a.pdf' }).success).toBe(false)
+    expect(
+      imagePosterSchema.safeParse({ ...validImage, brochureUrl: 'https://evil.test/a.pdf' })
+        .success,
+    ).toBe(false)
     expect(settingsSchema.safeParse({ logoUrl: '/brand/logo.png' }).success).toBe(true)
     expect(settingsSchema.safeParse({ logoUrl: 'https://evil.test/logo.png' }).success).toBe(false)
   })
@@ -111,17 +129,32 @@ describe('analytics date range', () => {
     const last30 = { from: addDays(today(), -29), to: today() }
     expect(analyticsQuerySchema.parse({})).toEqual(last30)
     expect(analyticsQuerySchema.parse({ from: '', to: '' })).toEqual(last30)
-    expect(analyticsQuerySchema.parse({ to: '2026-10-10' })).toEqual({ from: '2026-09-11', to: '2026-10-10' })
+    expect(analyticsQuerySchema.parse({ to: '2026-10-10' })).toEqual({
+      from: '2026-09-11',
+      to: '2026-10-10',
+    })
   })
 
   it('accepts a range up to the limit', () => {
-    expect(analyticsQuerySchema.parse({ from: '2026-10-27', to: '2026-10-27' })).toEqual({ from: '2026-10-27', to: '2026-10-27' })
-    expect(analyticsQuerySchema.safeParse({ from: '2025-10-27', to: '2026-10-27' }).success).toBe(true) // 366 days
+    expect(analyticsQuerySchema.parse({ from: '2026-10-27', to: '2026-10-27' })).toEqual({
+      from: '2026-10-27',
+      to: '2026-10-27',
+    })
+    expect(analyticsQuerySchema.safeParse({ from: '2025-10-27', to: '2026-10-27' }).success).toBe(
+      true,
+    ) // 366 days
   })
 
   // Regression: `to=z` used to loop forever and hang the whole server.
   it('rejects values that are not real calendar dates', () => {
-    for (const to of ['z', '9999', '2026-02-30', '2026-13-01', '2026-10-27T00:00', ['2026-10-01', '2026-10-02']])
+    for (const to of [
+      'z',
+      '9999',
+      '2026-02-30',
+      '2026-13-01',
+      '2026-10-27T00:00',
+      ['2026-10-01', '2026-10-02'],
+    ])
       expect(failsOn({ to })).toBe('to')
     expect(failsOn({ from: 'x' })).toBe('from')
   })
@@ -148,13 +181,18 @@ describe('"Perpanjang" end date', () => {
     expect(extendEndProblem('2026-10-31', '2026-10-01')).toBe('Pilih tanggal setelah 31 Okt 2026.')
   })
   it('accepts the quick options and up to a year more', () => {
-    for (const end of ['2026-11-07', '2026-11-30', '2027-11-01']) expect(extendEndProblem('2026-10-31', end)).toBeNull()
+    for (const end of ['2026-11-07', '2026-11-30', '2027-11-01'])
+      expect(extendEndProblem('2026-10-31', end)).toBeNull()
     expect(MAX_EXTEND_DAYS).toBe(366)
   })
   // Regression: any later date was accepted, e.g. 9999-12-31 kept a poster live forever.
   it('refuses more than a year past the current end', () => {
-    expect(extendEndProblem('2026-10-31', '2027-11-02')).toBe('Maksimal 1 tahun setelah 31 Okt 2026.')
-    expect(extendEndProblem('2026-10-31', '9999-12-31')).toBe('Maksimal 1 tahun setelah 31 Okt 2026.')
+    expect(extendEndProblem('2026-10-31', '2027-11-02')).toBe(
+      'Maksimal 1 tahun setelah 31 Okt 2026.',
+    )
+    expect(extendEndProblem('2026-10-31', '9999-12-31')).toBe(
+      'Maksimal 1 tahun setelah 31 Okt 2026.',
+    )
   })
 })
 

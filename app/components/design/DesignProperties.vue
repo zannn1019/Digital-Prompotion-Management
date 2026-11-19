@@ -1,7 +1,18 @@
 <script setup lang="ts">
 // Right side of the editor: settings for the selected element. Live edits use
 // `update(patch, false)`; the change is committed to undo history on blur/click.
-import { AlignCenter, AlignLeft, AlignRight, ArrowDown, ArrowUp, Copy, Lock, Minus, Plus, Trash2 } from '@lucide/vue'
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  Lock,
+  Minus,
+  Plus,
+  Trash2,
+} from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { ELEMENT_LABEL, MAX_FONT, MIN_FONT, isLocked } from '#shared/design'
@@ -26,7 +37,10 @@ function resize(step: number) {
 // Two-way colour fields for the swatch pickers; each pick commits.
 const color = (key: 'fill' | 'background') =>
   computed({
-    get: () => (props.element && key in props.element ? ((props.element as Record<string, any>)[key] as string) : ''),
+    get: () =>
+      props.element && key in props.element
+        ? ((props.element as Record<string, any>)[key] as string)
+        : '',
     set: v => set({ [key]: v } as Partial<DesignElement>),
   })
 const fill = color('fill')
@@ -70,21 +84,33 @@ async function replacePhoto(f: File | undefined) {
 </script>
 
 <template>
-  <aside aria-label="Pengaturan elemen" class="flex w-[280px] shrink-0 flex-col gap-5 overflow-y-auto border-l p-4">
+  <aside
+    aria-label="Pengaturan elemen"
+    class="flex w-[280px] shrink-0 flex-col gap-5 overflow-y-auto border-l p-4"
+  >
     <template v-if="!element">
       <h2 class="text-lg font-bold">Pilih elemen</h2>
       <p class="text-[15px] leading-relaxed text-zinc-700">
-        Klik teks, foto, atau bentuk di poster untuk mengubahnya. Seret untuk memindah, tarik sudut kotak oranye untuk mengubah ukuran.
+        Klik teks, foto, atau bentuk di poster untuk mengubahnya. Seret untuk memindah, tarik sudut
+        kotak oranye untuk mengubah ukuran.
       </p>
-      <p class="text-[15px] leading-relaxed text-zinc-700">Warna latar ada di tab <b>Latar</b>.</p>
+      <p class="text-[15px] leading-relaxed text-zinc-700">
+        Warna latar ada di tab
+        <b>Latar</b>
+        .
+      </p>
     </template>
 
     <template v-else>
       <div class="flex items-center justify-between gap-2">
         <h2 class="text-lg font-bold">{{ ELEMENT_LABEL[element.type] }}</h2>
-        <span v-if="isLocked(element)" class="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-sm"
-          ><Lock class="size-3.5" aria-hidden="true" />Terkunci</span
+        <span
+          v-if="isLocked(element)"
+          class="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-sm"
         >
+          <Lock class="size-3.5" aria-hidden="true" />
+          Terkunci
+        </span>
       </div>
 
       <!-- Text and label: content, size, colours -->
@@ -121,8 +147,9 @@ async function replacePhoto(f: File | undefined) {
               aria-label="Perkecil huruf"
               :disabled="element.fontSize <= MIN_FONT"
               @click="resize(-FONT_STEP)"
-              ><Minus class="size-5"
-            /></Button>
+            >
+              <Minus class="size-5" />
+            </Button>
             <span class="grow text-center text-base font-semibold">{{ element.fontSize }} px</span>
             <Button
               type="button"
@@ -131,8 +158,9 @@ async function replacePhoto(f: File | undefined) {
               aria-label="Perbesar huruf"
               :disabled="element.fontSize >= MAX_FONT"
               @click="resize(FONT_STEP)"
-              ><Plus class="size-5"
-            /></Button>
+            >
+              <Plus class="size-5" />
+            </Button>
           </div>
         </div>
         <template v-if="element.type === 'text'">
@@ -142,7 +170,8 @@ async function replacePhoto(f: File | undefined) {
               class="size-5 accent-zinc-900"
               :checked="element.bold"
               @change="set({ bold: ($event.target as HTMLInputElement).checked })"
-            />Tebal
+            />
+            Tebal
           </label>
           <fieldset class="flex flex-col gap-2">
             <legend class="mb-2 text-[15px] font-semibold">Perataan</legend>
@@ -171,9 +200,16 @@ async function replacePhoto(f: File | undefined) {
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-2 text-[15px] font-semibold">Sudut</legend>
           <div class="flex flex-wrap gap-1.5">
-            <Button v-for="c in CORNERS" :key="c.label" type="button" variant="outline" class="h-11 grow" @click="setCorner(c.value)">{{
-              c.label
-            }}</Button>
+            <Button
+              v-for="c in CORNERS"
+              :key="c.label"
+              type="button"
+              variant="outline"
+              class="h-11 grow"
+              @click="setCorner(c.value)"
+            >
+              {{ c.label }}
+            </Button>
           </div>
         </fieldset>
       </template>
@@ -187,44 +223,72 @@ async function replacePhoto(f: File | undefined) {
           aria-label="Pilih foto pengganti"
           @change="replacePhoto(($event.target as HTMLInputElement).files?.[0])"
         />
-        <Button type="button" class="h-12 text-base" :disabled="uploading" @click="photoInput?.click()">{{
-          uploading ? 'Mengunggah…' : 'Ganti foto'
-        }}</Button>
-        <p v-if="photoError" class="text-sm font-semibold text-destructive" role="alert">{{ photoError }}</p>
+        <Button
+          type="button"
+          class="h-12 text-base"
+          :disabled="uploading"
+          @click="photoInput?.click()"
+        >
+          {{ uploading ? 'Mengunggah…' : 'Ganti foto' }}
+        </Button>
+        <p v-if="photoError" class="text-sm font-semibold text-destructive" role="alert">
+          {{ photoError }}
+        </p>
         <label class="flex min-h-11 items-center gap-3 text-[15px]">
           <input
             type="checkbox"
             class="size-5 accent-zinc-900"
             :checked="element.cornerRadius > 0"
             @change="set({ cornerRadius: ($event.target as HTMLInputElement).checked ? 28 : 0 })"
-          />Sudut membulat
+          />
+          Sudut membulat
         </label>
-        <p class="text-sm leading-relaxed text-muted-foreground">Foto dipotong otomatis mengikuti bentuk kotaknya.</p>
+        <p class="text-sm leading-relaxed text-muted-foreground">
+          Foto dipotong otomatis mengikuti bentuk kotaknya.
+        </p>
       </template>
 
       <template v-else>
         <p class="text-[15px] leading-relaxed text-zinc-700">
-          Elemen ini mengikuti Pengaturan Situs supaya semua poster seragam. Tidak bisa dipindah, diubah, atau dihapus di sini.
+          Elemen ini mengikuti Pengaturan Situs supaya semua poster seragam. Tidak bisa dipindah,
+          diubah, atau dihapus di sini.
         </p>
-        <NuxtLink v-if="canOpenSettings" to="/admin/settings" class="text-[15px] font-medium underline underline-offset-4"
-          >Buka Pengaturan Situs</NuxtLink
+        <NuxtLink
+          v-if="canOpenSettings"
+          to="/admin/settings"
+          class="text-[15px] font-medium underline underline-offset-4"
         >
-        <p v-else class="text-[15px] text-muted-foreground">Hubungi Super Admin bila datanya perlu diubah.</p>
+          Buka Pengaturan Situs
+        </NuxtLink>
+        <p v-else class="text-[15px] text-muted-foreground">
+          Hubungi Super Admin bila datanya perlu diubah.
+        </p>
       </template>
 
       <div v-if="!isLocked(element)" class="mt-auto flex flex-col gap-2 border-t pt-4">
         <span class="text-[15px] font-semibold">Elemen</span>
         <div class="grid grid-cols-2 gap-2">
-          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'forward')"
-            ><ArrowUp class="size-4" />Ke depan</Button
+          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'forward')">
+            <ArrowUp class="size-4" />
+            Ke depan
+          </Button>
+          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'backward')">
+            <ArrowDown class="size-4" />
+            Ke belakang
+          </Button>
+          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'duplicate')">
+            <Copy class="size-4" />
+            Duplikat
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            class="h-11 border-red-300 text-red-700 hover:bg-red-50"
+            @click="emit('action', 'delete')"
           >
-          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'backward')"
-            ><ArrowDown class="size-4" />Ke belakang</Button
-          >
-          <Button type="button" variant="outline" class="h-11" @click="emit('action', 'duplicate')"><Copy class="size-4" />Duplikat</Button>
-          <Button type="button" variant="outline" class="h-11 border-red-300 text-red-700 hover:bg-red-50" @click="emit('action', 'delete')"
-            ><Trash2 class="size-4" />Hapus</Button
-          >
+            <Trash2 class="size-4" />
+            Hapus
+          </Button>
         </div>
       </div>
     </template>

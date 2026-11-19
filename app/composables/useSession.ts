@@ -18,5 +18,7 @@ export function useSession() {
   }
 
   const isSuper = computed(() => user.value?.role === 'super')
-  return { user, loaded, refresh, logout, isSuper }
+  /** Approvers and Super Admins publish directly and review what Staff and Marketing submit. */
+  const canApprove = computed(() => user.value?.role === 'super' || user.value?.role === 'approver')
+  return { user, loaded, refresh, logout, isSuper, canApprove }
 }

@@ -14,9 +14,13 @@ const { refresh } = useSession()
 // Already signed in (e.g. an old bookmark or the browser's back button): go on instead of showing the form.
 onMounted(async () => {
   const me = await refresh()
-  if (me) await navigateTo(me.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo), { replace: true })
+  if (me)
+    await navigateTo(
+      me.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo),
+      { replace: true },
+    )
 })
-// Demo buttons for the client demo; off with NUXT_PUBLIC_DEMO_LOGIN=false.
+// Demo buttons for a local client demo; only shown with NUXT_PUBLIC_DEMO_LOGIN=true.
 const demoLogin = useRuntimeConfig().public.demoLogin
 const email = ref('')
 const password = ref('')
@@ -35,14 +39,21 @@ const lockUntil = computed(() => {
 async function submit() {
   fieldErr.value = {}
   if (!email.value.trim()) fieldErr.value.email = 'Isian ini wajib diisi.'
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) fieldErr.value.email = 'Format email belum benar. Contoh: nama@rs-bethesda.test'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value))
+    fieldErr.value.email = 'Format email belum benar. Contoh: nama@rs-bethesda.test'
   if (!password.value) fieldErr.value.password = 'Isian ini wajib diisi.'
-  if (fieldErr.value.email || fieldErr.value.password) return
+  if (fieldErr.value.email || fieldErr.value.password) {
+    void focusFirstError()
+    return
+  }
 
   loading.value = true
   let signedIn: User
   try {
-    signedIn = await $fetch<User>('/api/auth/login', { method: 'POST', body: { email: email.value, password: password.value } })
+    signedIn = await $fetch<User>('/api/auth/login', {
+      method: 'POST',
+      body: { email: email.value, password: password.value },
+    })
   } catch (e: any) {
     if (e?.statusCode === 423) {
       state.value = 'locked'
@@ -67,7 +78,9 @@ async function submit() {
   // Signed in. A temporary password must be changed first. Otherwise only return to a page inside the
   // admin panel; anything else (another site, a broken link) goes home.
   await refresh()
-  await navigateTo(signedIn.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo))
+  await navigateTo(
+    signedIn.mustChangePassword ? '/admin/change-password' : adminReturnPath(route.query.returnTo),
+  )
   loading.value = false
 }
 
@@ -82,11 +95,19 @@ function demo(addr: string) {
   <div class="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
     <main class="w-full max-w-md rounded-xl border bg-background p-8 shadow-sm">
       <div class="mb-6 flex items-center gap-2.5">
-        <img src="/brand/logo.png" alt="RS Bethesda Yogyakarta" width="194" height="44" class="block h-11 w-auto" />
+        <img
+          src="/brand/logo.png"
+          alt="RS Bethesda Yogyakarta"
+          width="194"
+          height="44"
+          class="block h-11 w-auto"
+        />
         <!-- <span class="text-sm font-semibold text-muted-foreground">Panel Admin</span> -->
       </div>
       <h1 class="text-2xl font-semibold tracking-tight">Masuk</h1>
-      <p class="mt-1.5 mb-5 text-sm text-muted-foreground">Kelola poster yang muncul saat kartu NFC diketuk.</p>
+      <p class="mt-1.5 mb-5 text-sm text-muted-foreground">
+        Kelola poster yang muncul saat kartu NFC diketuk.
+      </p>
 
       <Alert v-if="route.query.loggedOut && state === 'idle'" class="mb-5">
         <CircleCheck class="size-4" />
@@ -95,7 +116,9 @@ function demo(addr: string) {
       <Alert v-if="state === 'error'" variant="destructive" class="mb-5" role="alert">
         <CircleAlert class="size-4" />
         <AlertTitle>Email atau kata sandi salah</AlertTitle>
-        <AlertDescription>Periksa kembali, lalu coba lagi. Sisa percobaan: {{ remaining }}.</AlertDescription>
+        <AlertDescription>
+          Periksa kembali, lalu coba lagi. Sisa percobaan: {{ remaining }}.
+        </AlertDescription>
       </Alert>
       <Alert v-if="state === 'problem'" variant="destructive" class="mb-5" role="alert">
         <CircleAlert class="size-4" />
@@ -104,11 +127,12 @@ function demo(addr: string) {
       </Alert>
       <Alert v-if="state === 'locked'" variant="destructive" class="mb-5" role="alert">
         <Lock class="size-4" />
-        <AlertTitle>Akun terkunci sementara</AlertTitle>
-        <AlertDescription
-          >Terlalu banyak percobaan gagal (5 kali). Demi keamanan, akun dikunci 15 menit (sampai pukul {{ lockUntil }}). Hubungi Super Admin
-          bila perlu dibuka sekarang.</AlertDescription
-        >
+        <AlertTitle>Masuk ditahan sementara</AlertTitle>
+        <AlertDescription>
+          Terlalu banyak kata sandi salah. Demi keamanan, akun ini tidak bisa dimasuki dari
+          perangkat ini selama 15 menit (sampai pukul {{ lockUntil }}). Hubungi Super Admin bila
+          perlu dibuka sekarang.
+        </AlertDescription>
       </Alert>
 
       <form novalidate class="flex flex-col gap-4" @submit.prevent="submit">
@@ -119,12 +143,16 @@ function demo(addr: string) {
             v-model="email"
             type="email"
             autocomplete="username"
+            spellcheck="false"
+            required
             class="h-11"
             :disabled="state === 'locked'"
             :aria-invalid="!!fieldErr.email"
             :aria-describedby="fieldErr.email ? 'email-err' : undefined"
           />
-          <p v-if="fieldErr.email" id="email-err" class="text-sm font-medium text-destructive">{{ fieldErr.email }}</p>
+          <p v-if="fieldErr.email" id="email-err" class="text-sm font-medium text-destructive">
+            {{ fieldErr.email }}
+          </p>
         </div>
         <div class="flex flex-col gap-1.5">
           <Label for="pw">Kata sandi</Label>
@@ -134,6 +162,7 @@ function demo(addr: string) {
               v-model="password"
               :type="showPw ? 'text' : 'password'"
               autocomplete="current-password"
+              required
               class="h-11 pr-12"
               :disabled="state === 'locked'"
               :aria-invalid="!!fieldErr.password"
@@ -155,9 +184,13 @@ function demo(addr: string) {
               <EyeClosed v-else class="size-5" aria-hidden="true" />
             </Button>
           </div>
-          <p v-if="fieldErr.password" id="pw-err" class="text-sm font-medium text-destructive">{{ fieldErr.password }}</p>
+          <p v-if="fieldErr.password" id="pw-err" class="text-sm font-medium text-destructive">
+            {{ fieldErr.password }}
+          </p>
         </div>
-        <Button type="submit" class="mt-1 h-11" :disabled="loading || state === 'locked'">{{ loading ? 'Memeriksa…' : 'Masuk' }}</Button>
+        <Button type="submit" class="mt-1 h-11" :disabled="loading || state === 'locked'">
+          {{ loading ? 'Memeriksa…' : 'Masuk' }}
+        </Button>
         <p class="text-center text-xs text-muted-foreground">
           Lupa kata sandi? Hubungi Super Admin. Sesi berakhir setelah 30 menit tidak aktif.
         </p>
@@ -166,7 +199,9 @@ function demo(addr: string) {
       <div v-if="demoLogin" class="mt-6 rounded-lg border border-dashed bg-secondary p-4 text-sm">
         <b>Akun demo (data dummy)</b>
         <div class="mt-3 flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" class="h-9" @click="demo('admin@rs-bethesda.test')">Super Admin</Button>
+          <Button variant="outline" size="sm" class="h-9" @click="demo('admin@rs-bethesda.test')">
+            Super Admin
+          </Button>
         </div>
         <p class="mt-2 text-xs text-muted-foreground">Kata sandi akun demo: demo123.</p>
       </div>

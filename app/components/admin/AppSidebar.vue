@@ -1,19 +1,54 @@
 <script setup lang="ts">
 import { ROLE_LABEL } from '#shared/constants'
 import type { Settings as SiteSettings } from '#shared/types'
-import { BarChart3, CreditCard, FileImage, History, Home, LayoutPanelTop, Settings, Users } from '@lucide/vue'
+import {
+  BarChart3,
+  ClipboardCheck,
+  CreditCard,
+  FileImage,
+  History,
+  Home,
+  LayoutPanelTop,
+  Settings,
+  Users,
+} from '@lucide/vue'
 
-const props = defineProps<{ expiringCount?: number }>()
-const { user, isSuper } = useSession()
-const { data: settings } = useFetch<SiteSettings>('/api/settings', { key: 'settings', server: false })
+const props = defineProps<{ expiringCount?: number; pendingCount?: number }>()
+const { user, isSuper, canApprove } = useSession()
+const { data: settings } = useFetch<SiteSettings>('/api/settings', {
+  key: 'settings',
+  server: false,
+})
 
 const groups = computed(() => [
-  { title: 'Utama', items: [{ to: '/admin', label: 'Beranda', icon: Home, count: props.expiringCount }] },
+  {
+    title: 'Utama',
+    items: [
+      {
+        to: '/admin',
+        label: 'Beranda',
+        icon: Home,
+        count: props.expiringCount,
+        countLabel: 'konten segera berakhir',
+      },
+    ],
+  },
   {
     title: 'Konten',
     items: [
       { to: '/admin/posters', label: 'Poster & Pengumuman', icon: FileImage },
       { to: '/admin/pages', label: 'Halaman', icon: LayoutPanelTop },
+      ...(canApprove.value
+        ? [
+            {
+              to: '/admin/approvals',
+              label: 'Persetujuan',
+              icon: ClipboardCheck,
+              count: props.pendingCount,
+              countLabel: 'menunggu persetujuan',
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -45,7 +80,10 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <nav aria-label="Navigasi utama" class="flex h-full flex-col gap-1 border-r bg-sidebar px-3 py-4 text-sidebar-foreground">
+  <nav
+    aria-label="Navigasi utama"
+    class="flex h-full flex-col gap-1 border-r bg-sidebar px-3 py-4 text-sidebar-foreground"
+  >
     <NuxtLink to="/admin" class="flex items-center px-2 pb-4">
       <span class="flex flex-col gap-1.5">
         <img
@@ -66,23 +104,27 @@ function isActive(to: string) {
         :key="it.to"
         :to="it.to"
         :aria-current="isActive(it.to) ? 'page' : undefined"
-        class="flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-zinc-700 hover:bg-sidebar-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
+        class="flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-zinc-700 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
       >
         <component :is="it.icon" class="size-4" aria-hidden="true" />
         <span class="grow">{{ it.label }}</span>
         <span
           v-if="'count' in it && it.count"
           class="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold text-white"
-          :aria-label="`${it.count} konten segera berakhir`"
-          >{{ it.count }}</span
         >
+          {{ it.count }}
+          <span class="sr-only">{{ it.countLabel }}</span>
+        </span>
       </NuxtLink>
     </div>
 
     <div class="mt-auto flex items-center gap-2.5 rounded-lg border bg-background p-2.5">
-      <span aria-hidden="true" class="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">{{
-        initials(user?.name)
-      }}</span>
+      <span
+        aria-hidden="true"
+        class="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold"
+      >
+        {{ initials(user?.name) }}
+      </span>
       <span class="flex flex-col leading-tight">
         <b class="text-[13px] font-semibold">{{ user?.name }}</b>
         <span class="text-xs text-muted-foreground">{{ user ? ROLE_LABEL[user.role] : '' }}</span>

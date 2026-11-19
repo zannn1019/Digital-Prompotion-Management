@@ -12,17 +12,38 @@ import { POSTER_CATEGORY, POSTER_LIMITS } from '#shared/constants'
 import { today, addDays } from '#shared/utils/format'
 import type { UploadedFile } from '~/utils/upload'
 
-const props = defineProps<{ poster?: Poster & { pageIds?: string[] } }>()
+const props = defineProps<{
+  poster?: Poster & {
+    pageIds?: string[]
+    ownerName?: string | null
+    pendingByName?: string | null
+    rejectedByName?: string | null
+  }
+}>()
+const { user, canApprove } = useSession()
 const canvasEditor = useRuntimeConfig().public.canvasEditor
 
 const { data: pages } = useFetch<(Page & { cardCount: number })[]>('/api/pages', { server: false })
 const choosablePages = computed(() => (pages.value ?? []).filter(p => !p.isDefault))
 const { errors, submit } = useFieldErrors()
 
-const p = props.poster
+// Staff and Marketing keep working on their own submitted version while it waits for approval.
+const p =
+  props.poster?.pending && !canApprove.value
+    ? {
+        ...props.poster,
+        ...props.poster.pending.fields,
+        pageIds: props.poster.pending.pageIds ?? props.poster.pageIds,
+      }
+    : props.poster
 const form = reactive({
   file: (p?.imageUrl
-    ? { url: p.imageUrl, previewUrl: p.imageUrl, name: p.imageFile ?? 'poster', size: p.imageSize ?? 0 }
+    ? {
+        url: p.imageUrl,
+        previewUrl: p.imageUrl,
+        name: p.imageFile ?? 'poster',
+        size: p.imageSize ?? 0,
+      }
     : null) as UploadedFile | null,
   title: p?.title ?? '',
   category: (p?.category ?? '') as PosterCategory | '',
@@ -32,9 +53,14 @@ const form = reactive({
   listTitle: p?.listTitle ?? '',
   points: [...(p?.points ?? [])],
   showBrochure: !!p?.buttons?.includes('doc'),
-  brochure: (p?.brochureUrl ? { url: p.brochureUrl, name: p.brochureFile ?? 'brosur.pdf', size: 0 } : null) as UploadedFile | null,
+  brochure: (p?.brochureUrl
+    ? { url: p.brochureUrl, name: p.brochureFile ?? 'brosur.pdf', size: 0 }
+    : null) as UploadedFile | null,
   terms: p?.terms ?? '',
   contacts: (p?.buttons ?? ['wa', 'tel']).filter(b => b !== 'doc') as ContactButton[],
+  /** Marketing user in charge; a new poster made by a Marketing user starts as theirs. */
+  ownerId: (p ? (p.ownerId ?? null) : user.value?.role === 'marketing' ? user.value.id : null) as
+    string | null,
   /** Internal name for the team's list; defaults to the title. */
   name: p?.name ?? '',
   start: p?.start ?? today(),
@@ -55,7 +81,8 @@ if (draft.value?.file && draft.value.posterId === props.poster?.id) {
   if (design) {
     const words = designText(design)
     if (!form.title) form.title = words.split('\n')[0]!.slice(0, POSTER_LIMITS.title)
-    if (!form.description) form.description = words.replace(/\n+/g, ' · ').slice(0, POSTER_LIMITS.description)
+    if (!form.description)
+      form.description = words.replace(/\n+/g, ' · ').slice(0, POSTER_LIMITS.description)
   }
   form.file = file
   draft.value = null
@@ -65,7 +92,9 @@ if (draft.value?.file && draft.value.posterId === props.poster?.id) {
 async function openEditor() {
   const { file: _file, design, ...fields } = form
   // JSON copy: plain data only, detached from this form's reactive state.
-  draft.value = JSON.parse(JSON.stringify({ posterId: props.poster?.id, design: design ?? undefined, form: fields }))
+  draft.value = JSON.parse(
+    JSON.stringify({ posterId: props.poster?.id, design: design ?? undefined, form: fields }),
+  )
   markSaved()
   await navigateTo('/admin/posters/design')
 }
@@ -88,6 +117,7 @@ const STEP1_FIELDS = [
   'brochureUrl',
   'buttons',
   'name',
+  'ownerId',
 ]
 
 /** Required step-1 fields, checked before moving on so errors show where they are. */
@@ -103,10 +133,18 @@ function checkStep1() {
   }
   return !Object.keys(e).length
 }
+// The button that was pressed disappears with the step, so focus goes to the step list instead of
+// falling back to the page (screen-reader and keyboard users keep their place).
+const stepsEl = ref<HTMLElement>()
+async function goTo(n: 1 | 2) {
+  step.value = n
+  await nextTick()
+  stepsEl.value?.focus({ preventScroll: true })
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 function next() {
   if (!checkStep1()) return
-  step.value = 2
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  void goTo(2)
 }
 
 const saving = ref<PublishStatus | null>(null)
@@ -127,6 +165,7 @@ async function save(status: PublishStatus) {
     brochureUrl: form.showBrochure ? (form.brochure?.url ?? null) : null,
     brochureFile: form.showBrochure ? form.brochure?.name : undefined,
     buttons: [...form.contacts, ...(form.showBrochure ? ['doc' as const] : [])],
+    ownerId: form.ownerId,
     start: form.start,
     end: form.end,
     pageIds: form.pageIds,
@@ -150,9 +189,19 @@ async function save(status: PublishStatus) {
     return
   }
   markSaved()
-  toast.success(status === 'published' ? 'Poster diterbitkan. Akan tampil sesuai jadwal.' : 'Draft tersimpan.')
+  toast.success(
+    res.pending
+      ? 'Poster diajukan. Tampil setelah disetujui Approver.'
+      : status === 'published'
+        ? 'Poster diterbitkan. Akan tampil sesuai jadwal.'
+        : 'Draft tersimpan.',
+  )
   await navigateTo('/admin/posters')
 }
+
+// The poster's contact comes from its marketing user (set in Pengguna), not from this form.
+const { marketers } = useMarketingUsers()
+const owner = computed(() => marketers.value.find(m => m.id === form.ownerId) ?? null)
 
 const preview = usePosterPreview(() => ({
   posters: [
@@ -169,14 +218,23 @@ const preview = usePosterPreview(() => ({
       buttons: [...form.contacts, ...(form.showBrochure ? ['doc' as const] : [])],
       end: form.end,
     }),
-  ],
+  ].map(p => ({ ...p, contactName: owner.value?.name })),
 }))
 </script>
 
 <template>
   <div class="flex flex-wrap items-start gap-8">
-    <form class="flex min-w-0 grow-[999] basis-[520px] flex-col gap-6 text-base" novalidate @submit.prevent>
-      <ol aria-label="Langkah" class="flex flex-wrap gap-2 text-base">
+    <form
+      class="flex min-w-0 grow-[999] basis-[520px] flex-col gap-6 text-base"
+      novalidate
+      @submit.prevent
+    >
+      <ol
+        ref="stepsEl"
+        tabindex="-1"
+        aria-label="Langkah"
+        class="flex flex-wrap gap-2 text-base outline-none"
+      >
         <li
           :class="[
             'flex items-center gap-2 rounded-full px-4 py-2 font-semibold',
@@ -184,7 +242,9 @@ const preview = usePosterPreview(() => ({
           ]"
           :aria-current="step === 1 ? 'step' : undefined"
         >
-          <Check v-if="step === 2" class="size-4" aria-hidden="true" /><span v-else>1</span>Gambar &amp; isi poster
+          <Check v-if="step === 2" class="size-4" aria-hidden="true" />
+          <span v-else>1</span>
+          Gambar &amp; isi poster
         </li>
         <li
           :class="[
@@ -193,13 +253,18 @@ const preview = usePosterPreview(() => ({
           ]"
           :aria-current="step === 2 ? 'step' : undefined"
         >
-          <span>2</span>Atur jadwal &amp; halaman
+          <span>2</span>
+          Atur jadwal &amp; halaman
         </li>
       </ol>
 
+      <AdminApprovalNotice :poster="poster" />
+
       <template v-if="step === 1">
         <p class="text-[15px] leading-relaxed text-muted-foreground">
-          Isi bagian bernomor sesuai urutan di halaman pengunjung. Bagian <b>opsional</b> boleh dikosongkan dan tidak akan tampil.
+          Isi bagian bernomor sesuai urutan di halaman pengunjung. Bagian
+          <b>opsional</b>
+          boleh dikosongkan dan tidak akan tampil.
         </p>
 
         <AdminFormSection id="s1" :n="1" title="Gambar poster">
@@ -208,25 +273,55 @@ const preview = usePosterPreview(() => ({
               <img :src="form.file.url" alt="" class="h-28 w-[90px] rounded object-cover" />
               <div class="min-w-0 grow">
                 <b class="block text-[17px] font-semibold">Didesain di editor</b>
-                <span class="text-[15px] text-muted-foreground">1080 × 1350 · bisa diubah lagi kapan saja</span>
+                <span class="text-[15px] text-muted-foreground">
+                  1080 × 1350 · bisa diubah lagi kapan saja
+                </span>
               </div>
               <div class="flex flex-wrap gap-2">
-                <Button v-if="canvasEditor" type="button" class="h-12 text-base" @click="openEditor"
-                  ><PenLine class="size-4" />Ubah desain</Button
+                <Button
+                  v-if="canvasEditor"
+                  type="button"
+                  class="h-12 text-base"
+                  @click="openEditor"
                 >
-                <Button type="button" variant="outline" class="h-12 text-base" @click="useUploadInstead">Pakai file unggahan</Button>
+                  <PenLine class="size-4" />
+                  Ubah desain
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  class="h-12 text-base"
+                  @click="useUploadInstead"
+                >
+                  Pakai file unggahan
+                </Button>
               </div>
             </div>
           </template>
           <template v-else>
             <p class="text-[15px] leading-relaxed text-zinc-700">
-              Poster yang sudah jadi, dari aplikasi desain apa pun: <b>PNG</b>, <b>JPG</b>, <b>WebP</b>, atau <b>PDF</b>, maksimal
-              <b>5 MB</b>. Paling bagus tegak 4:5 (misal 1080 × 1350).
+              Poster yang sudah jadi, dari aplikasi desain apa pun:
+              <b>PNG</b>
+              ,
+              <b>JPG</b>
+              ,
+              <b>WebP</b>
+              , atau
+              <b>PDF</b>
+              , maksimal
+              <b>5 MB</b>
+              . Paling bagus tegak 4:5 (misal 1080 × 1350).
             </p>
             <AdminFileDropzone v-model="form.file" :error="errors.imageUrl" />
             <p v-if="canvasEditor" class="text-[15px] text-zinc-700">
               Belum punya poster?
-              <button type="button" class="font-semibold underline underline-offset-4" @click="openEditor">Desain sendiri di editor</button>
+              <button
+                type="button"
+                class="font-semibold underline underline-offset-4"
+                @click="openEditor"
+              >
+                Desain sendiri di editor
+              </button>
             </p>
           </template>
         </AdminFormSection>
@@ -247,7 +342,9 @@ const preview = usePosterPreview(() => ({
               <label for="category" class="text-[17px] font-semibold">Kategori</label>
               <AdminNativeSelect id="category" v-model="form.category" class="h-13 text-[17px]">
                 <option value="">Tanpa kategori</option>
-                <option v-for="(label, key) in POSTER_CATEGORY" :key="key" :value="key">{{ label }}</option>
+                <option v-for="(label, key) in POSTER_CATEGORY" :key="key" :value="key">
+                  {{ label }}
+                </option>
               </AdminNativeSelect>
             </div>
           </div>
@@ -294,7 +391,9 @@ const preview = usePosterPreview(() => ({
               placeholder="Contoh: pemeriksaan"
             />
           </div>
-          <span class="-mt-1 text-[15px] text-muted-foreground">Kosongkan bila tidak ada harga, misalnya acara atau info layanan.</span>
+          <span class="-mt-1 text-[15px] text-muted-foreground">
+            Kosongkan bila tidak ada harga, misalnya acara atau info layanan.
+          </span>
         </AdminFormSection>
 
         <AdminFormSection id="s4" :n="4" title="Daftar poin" optional>
@@ -312,7 +411,11 @@ const preview = usePosterPreview(() => ({
         </AdminFormSection>
 
         <AdminFormSection id="s5" :n="5" title="Brosur & syarat" optional>
-          <AdminBrochureField v-model:show="form.showBrochure" v-model:file="form.brochure" :error="errors.brochureUrl" />
+          <AdminBrochureField
+            v-model:show="form.showBrochure"
+            v-model:file="form.brochure"
+            :error="errors.brochureUrl"
+          />
           <AdminTextField
             id="terms"
             v-model="form.terms"
@@ -326,8 +429,43 @@ const preview = usePosterPreview(() => ({
           />
         </AdminFormSection>
 
-        <AdminFormSection id="s6" :n="6" title="Tombol kontak">
+        <AdminFormSection id="s6" :n="6" title="Tombol & kontak marketing">
           <AdminContactButtonPicker v-model="form.contacts" />
+          <AdminOwnerSelect
+            id="ownerId"
+            v-model="form.ownerId"
+            large
+            :current-name="poster?.ownerName"
+            :error="errors.ownerId"
+            hint="Klik di poster ini dihitung untuk orang ini di Analitik."
+            class="sm:max-w-sm"
+          />
+          <div
+            role="status"
+            class="flex flex-col gap-1.5 rounded-xl border bg-secondary px-4 py-3.5 text-[15px]"
+          >
+            <template v-if="owner">
+              <b class="text-[17px] font-semibold">Kontak di poster: {{ owner.name }}</b>
+              <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-zinc-700">
+                <dt>WhatsApp</dt>
+                <dd :class="!owner.wa && 'text-amber-800'">
+                  {{ owner.wa ?? 'belum diisi · memakai nomor Pengaturan' }}
+                </dd>
+                <dt>Telepon</dt>
+                <dd :class="!owner.phone && 'text-amber-800'">
+                  {{ owner.phone ?? 'belum diisi · memakai nomor Pengaturan' }}
+                </dd>
+                <dt>Email</dt>
+                <dd>{{ owner.email }}</dd>
+              </dl>
+              <span class="text-muted-foreground">
+                Diambil dari data pengguna Marketing. Ubah nomornya di menu Pengguna.
+              </span>
+            </template>
+            <span v-else class="text-zinc-700">
+              Belum ada marketing: tombol WhatsApp, telepon, dan email memakai kontak di Pengaturan.
+            </span>
+          </div>
         </AdminFormSection>
       </template>
 
@@ -348,13 +486,15 @@ const preview = usePosterPreview(() => ({
           type="button"
           variant="ghost"
           class="order-2 col-span-2 h-12 justify-start px-2 text-sm sm:order-none sm:h-13 sm:px-3 sm:text-base"
-          @click="step = 1"
+          @click="goTo(1)"
         >
-          <ArrowLeft class="size-4" />Kembali ke isi poster
+          <ArrowLeft class="size-4" />
+          Kembali ke isi poster
         </Button>
         <span
           class="order-1 col-span-2 px-1 text-center text-xs leading-snug text-muted-foreground sm:order-none sm:grow sm:px-0 sm:text-left sm:text-[15px]"
-          >{{ dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan tersimpan.' }}
+        >
+          {{ dirty ? 'Ada perubahan yang belum disimpan.' : 'Semua perubahan tersimpan.' }}
         </span>
         <Button
           type="button"
@@ -362,32 +502,49 @@ const preview = usePosterPreview(() => ({
           class="order-3 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
           :disabled="!!saving"
           @click="save('draft')"
-          >{{ saving === 'draft' ? 'Menyimpan…' : 'Simpan Draft' }}</Button
         >
+          {{ saving === 'draft' ? 'Menyimpan…' : 'Simpan Draft' }}
+        </Button>
         <Button
           v-if="step === 1"
           type="button"
           class="order-4 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
           @click="next"
-          >Lanjut: atur jadwal<ArrowRight class="size-4"
-        /></Button>
+        >
+          Lanjut: atur jadwal
+          <ArrowRight class="size-4" />
+        </Button>
         <Button
           v-else
           type="button"
           class="order-4 h-12 min-w-0 px-2 text-sm sm:order-none sm:h-13 sm:px-5 sm:text-base"
           :disabled="!!saving"
           @click="save('published')"
-          >{{ saving === 'published' ? 'Menerbitkan…' : 'Terbitkan poster' }}</Button
         >
+          {{
+            canApprove
+              ? saving === 'published'
+                ? 'Menerbitkan…'
+                : 'Terbitkan poster'
+              : saving === 'published'
+                ? 'Mengajukan…'
+                : 'Ajukan untuk disetujui'
+          }}
+        </Button>
       </div>
     </form>
 
-    <aside aria-label="Pratinjau HP" class="flex grow basis-[340px] flex-col items-center gap-3 lg:sticky lg:top-20">
+    <aside
+      aria-label="Pratinjau HP"
+      class="flex grow basis-[340px] flex-col items-center gap-3 lg:sticky lg:top-20"
+    >
       <b class="self-stretch text-[17px] font-semibold">Begini tampilannya di HP</b>
       <AdminPhoneFrame>
         <PosterView v-if="preview" :view="preview" preview class="min-h-full" />
       </AdminPhoneFrame>
-      <span class="text-center text-sm text-muted-foreground">Ketik di formulir, pratinjau ikut berubah.</span>
+      <span class="text-center text-sm text-muted-foreground">
+        Ketik di formulir, pratinjau ikut berubah.
+      </span>
     </aside>
   </div>
 </template>

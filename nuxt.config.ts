@@ -8,7 +8,15 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ['@lucide/vue', 'clsx', 'tailwind-merge', 'vue-sonner', 'class-variance-authority', '@vueuse/core', 'reka-ui'],
+      include: [
+        '@lucide/vue',
+        'clsx',
+        'tailwind-merge',
+        'vue-sonner',
+        'class-variance-authority',
+        '@vueuse/core',
+        'reka-ui',
+      ],
     },
   },
   shadcn: { prefix: '', componentDir: './app/components/ui' },
@@ -30,9 +38,9 @@ export default defineNuxtConfig({
       // Used for absolute links such as the "continue on your phone" QR code, and as the only accepted
       // Origin for API writes. Without it, production shows no QR code rather than trust the Host header.
       siteUrl: '',
-      // Demo buttons on the login page (sign in as a seeded account). On for the client demo;
-      // switch off with NUXT_PUBLIC_DEMO_LOGIN=false.
-      demoLogin: true,
+      // Demo buttons on the login page (sign in as the seeded account with the demo password).
+      // Off unless asked for: NUXT_PUBLIC_DEMO_LOGIN=true, for a local client demo only.
+      demoLogin: false,
     },
   },
   app: {

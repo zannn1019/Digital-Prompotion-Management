@@ -27,7 +27,10 @@ export default defineEventHandler(async event => {
   ])
   const cur = sum(stats, addDays(day, -6), day)
   const prev = sum(stats, addDays(day, -13), addDays(day, -7))
-  const days = Array.from({ length: 14 }, (_, i) => addDays(day, i - 13)).map(date => ({ date, ...sum(stats, date, date) }))
+  const days = Array.from({ length: 14 }, (_, i) => addDays(day, i - 13)).map(date => ({
+    date,
+    ...sum(stats, date, date),
+  }))
   const active = posters.filter(p => posterState(p, day) === 'tayang')
   const expiring = active
     .filter(p => {
@@ -48,6 +51,8 @@ export default defineEventHandler(async event => {
     postersScheduled: posters.filter(p => posterState(p, day) === 'terjadwal').length,
     postersDraft: posters.filter(p => posterState(p, day) === 'draft').length,
     expiring,
+    /** Submissions waiting for an Approver (shown as a badge on "Persetujuan"). */
+    pendingApprovals: posters.filter(p => p.pending && !p.archived).length,
     days,
     // Content changes only: sign-ins and failed sign-ins stay in the Audit Log.
     activity: activity.map(a => ({ ...a, userName: names.get(a.userId) ?? '' })),

@@ -19,7 +19,11 @@ export function useDirtyGuard(source: () => object) {
   }
 
   onBeforeRouteLeave(() => {
-    if (dirty.value && !window.confirm('Tinggalkan tanpa menyimpan? Perubahan yang belum disimpan akan hilang.')) return false
+    if (
+      dirty.value &&
+      !window.confirm('Tinggalkan tanpa menyimpan? Perubahan yang belum disimpan akan hilang.')
+    )
+      return false
   })
   if (import.meta.client)
     useEventListener(window, 'beforeunload', (e: BeforeUnloadEvent) => {

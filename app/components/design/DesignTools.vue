@@ -29,19 +29,37 @@ const TEXTS = [
     cls: 'text-2xl font-extrabold font-poster',
     make: () => makeText({ text: 'Judul poster', fontSize: 110, bold: true }),
   },
-  { label: 'Tambah subjudul', cls: 'text-lg font-semibold', make: () => makeText({ text: 'Subjudul', fontSize: 56, bold: true, y: 360 }) },
-  { label: 'Tambah teks isi', cls: 'text-base', make: () => makeText({ text: 'Tulis keterangan di sini', fontSize: 42, y: 520 }) },
+  {
+    label: 'Tambah subjudul',
+    cls: 'text-lg font-semibold',
+    make: () => makeText({ text: 'Subjudul', fontSize: 56, bold: true, y: 360 }),
+  },
+  {
+    label: 'Tambah teks isi',
+    cls: 'text-base',
+    make: () => makeText({ text: 'Tulis keterangan di sini', fontSize: 42, y: 520 }),
+  },
   {
     label: '• Tambah daftar poin',
     cls: 'text-base',
     make: () =>
-      makeText({ text: '• Poin pertama\n• Poin kedua\n• Poin ketiga', fontSize: 42, y: 520, x: 120, width: W - 240, align: 'left' }),
+      makeText({
+        text: '• Poin pertama\n• Poin kedua\n• Poin ketiga',
+        fontSize: 42,
+        y: 520,
+        x: 120,
+        width: W - 240,
+        align: 'left',
+      }),
   },
 ]
 const SHAPES = [
   { label: 'Kotak', make: () => makeRect({ fill: '#1673c4', cornerRadius: 0 }) },
   { label: 'Kotak isi', make: () => makeRect({ fill: '#ffffff', cornerRadius: 28 }) },
-  { label: 'Lingkaran', make: () => makeRect({ width: 300, height: 300, fill: '#facc15', cornerRadius: 150 }) },
+  {
+    label: 'Lingkaran',
+    make: () => makeRect({ width: 300, height: 300, fill: '#facc15', cornerRadius: 150 }),
+  },
   { label: 'Label harga', make: () => makeLabel({ text: 'Rp 000.000' }) },
 ]
 
@@ -83,10 +101,14 @@ function aspectRatio(src: string): Promise<number> {
 async function addPhoto(src: string) {
   const ratio = await aspectRatio(src)
   const width = 600
-  emit('add', makePhoto({ src, width, height: Math.round(width * ratio), x: (W - width) / 2, y: 300 }))
+  emit(
+    'add',
+    makePhoto({ src, width, height: Math.round(width * ratio), x: (W - width) / 2, y: 300 }),
+  )
 }
 
-const layers = computed(() => [...props.design.elements].reverse())
+// Top layer first; toReversed() returns a copy, so the design itself keeps its order.
+const layers = computed(() => props.design.elements.toReversed())
 </script>
 
 <template>
@@ -103,7 +125,8 @@ const layers = computed(() => [...props.design.elements].reverse())
         ]"
         @click="tab = t.id"
       >
-        <component :is="t.icon" class="size-5" aria-hidden="true" />{{ t.label }}
+        <component :is="t.icon" class="size-5" aria-hidden="true" />
+        {{ t.label }}
       </button>
     </nav>
 
@@ -114,12 +137,17 @@ const layers = computed(() => [...props.design.elements].reverse())
           v-for="t in TEXTS"
           :key="t.label"
           type="button"
-          :class="['min-h-13 rounded-lg border bg-white px-3 py-2 text-left hover:border-zinc-900', t.cls]"
+          :class="[
+            'min-h-13 rounded-lg border bg-white px-3 py-2 text-left hover:border-zinc-900',
+            t.cls,
+          ]"
           @click="emit('add', t.make())"
         >
           {{ t.label }}
         </button>
-        <p class="text-sm leading-relaxed text-muted-foreground">Ubah isi teks di panel kanan setelah teks dipilih.</p>
+        <p class="text-sm leading-relaxed text-muted-foreground">
+          Ubah isi teks di panel kanan setelah teks dipilih.
+        </p>
       </template>
 
       <template v-else-if="tab === 'foto'">
@@ -132,9 +160,9 @@ const layers = computed(() => [...props.design.elements].reverse())
           aria-label="Pilih foto"
           @change="onFile(($event.target as HTMLInputElement).files?.[0])"
         />
-        <Button type="button" class="h-12 text-base" :disabled="uploading" @click="input?.click()">{{
-          uploading ? 'Mengunggah…' : 'Unggah foto dari laptop'
-        }}</Button>
+        <Button type="button" class="h-12 text-base" :disabled="uploading" @click="input?.click()">
+          {{ uploading ? 'Mengunggah…' : 'Unggah foto dari laptop' }}
+        </Button>
         <p class="text-sm text-muted-foreground">PNG, JPG, atau WebP · maksimal 5 MB</p>
         <p v-if="error" class="text-sm font-semibold text-destructive" role="alert">{{ error }}</p>
         <div v-if="recent.length" class="grid grid-cols-2 gap-2">
@@ -179,17 +207,28 @@ const layers = computed(() => [...props.design.elements].reverse())
             :aria-pressed="design.background.top === b.top && design.background.bottom === b.bottom"
             :class="[
               'flex h-16 items-end rounded-lg border p-2 text-sm font-semibold',
-              design.background.top === b.top && design.background.bottom === b.bottom ? 'ring-2 ring-zinc-900 ring-offset-2' : '',
+              design.background.top === b.top && design.background.bottom === b.bottom
+                ? 'ring-2 ring-zinc-900 ring-offset-2'
+                : '',
             ]"
-            :style="{ background: `linear-gradient(170deg, ${b.top}, ${b.bottom})`, color: b.name === 'Terang' ? '#0b3a6e' : '#ffffff' }"
+            :style="{
+              background: `linear-gradient(170deg, ${b.top}, ${b.bottom})`,
+              color: b.name === 'Terang' ? '#0b3a6e' : '#ffffff',
+            }"
             @click="emit('background', { top: b.top, bottom: b.bottom })"
           >
             {{ b.name }}
           </button>
         </div>
-        <div class="mt-2 flex gap-2 rounded-lg border bg-white p-3 text-sm leading-relaxed text-zinc-700">
+        <div
+          class="mt-2 flex gap-2 rounded-lg border bg-white p-3 text-sm leading-relaxed text-zinc-700"
+        >
           <Lock class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>Logo dan kotak <b>Informasi</b> diambil dari Pengaturan Situs dan dikunci supaya semua poster seragam.</span>
+          <span>
+            Logo dan kotak
+            <b>Informasi</b>
+            diambil dari Pengaturan Situs dan dikunci supaya semua poster seragam.
+          </span>
         </div>
       </template>
 
@@ -208,7 +247,11 @@ const layers = computed(() => [...props.design.elements].reverse())
           @click="emit('select', el.id)"
         >
           <span class="min-w-0 grow truncate">{{ elementName(el) }}</span>
-          <Lock v-if="isLocked(el)" class="size-4 shrink-0 text-muted-foreground" aria-label="terkunci" />
+          <Lock
+            v-if="isLocked(el)"
+            class="size-4 shrink-0 text-muted-foreground"
+            aria-label="terkunci"
+          />
         </button>
       </template>
     </div>

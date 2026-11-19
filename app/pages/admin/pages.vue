@@ -3,7 +3,12 @@ import { ChevronDown, ChevronUp, Ellipsis, Files, GripVertical, Plus, X } from '
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -17,9 +22,13 @@ import { POSTER_STATE } from '#shared/constants'
 
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Halaman' })
 
-type PageRow = Page & { cardCount: number }
+type PageRow = Page & { cardCount: number; ownerName: string | null }
 type PosterRow = Poster & { state: PosterState }
-const { data: pages, refresh: refreshPages, status } = useFetch<PageRow[]>('/api/pages', { server: false })
+const {
+  data: pages,
+  refresh: refreshPages,
+  status,
+} = useFetch<PageRow[]>('/api/pages', { server: false })
 const { data: posters } = useFetch<PosterRow[]>('/api/posters', { server: false })
 
 const selectedId = ref('')
@@ -44,8 +53,14 @@ const dirty = computed(() => !!page.value && order.value.join() !== page.value.p
 
 const byId = (id: string) => posters.value?.find(p => p.id === id)
 const blocks = computed(() => order.value.map(byId).filter((p): p is PosterRow => !!p))
-const addable = computed(() => (posters.value ?? []).filter(p => p.kind === 'gambar' && !p.archived && !order.value.includes(p.id)))
-const announcement = computed(() => posters.value?.find(p => p.kind === 'pengumuman' && p.state === 'tayang'))
+const addable = computed(() =>
+  (posters.value ?? []).filter(
+    p => p.kind === 'gambar' && !p.archived && !order.value.includes(p.id),
+  ),
+)
+const announcement = computed(() =>
+  posters.value?.find(p => p.kind === 'pengumuman' && p.state === 'tayang'),
+)
 
 function move(i: number, d: number) {
   const j = i + d
@@ -92,7 +107,11 @@ async function resolveSwitch(keep: boolean) {
   selectedId.value = id
 }
 onBeforeRouteLeave(() => {
-  if (dirty.value && !window.confirm('Tinggalkan tanpa menyimpan? Urutan poster yang belum disimpan akan hilang.')) return false
+  if (
+    dirty.value &&
+    !window.confirm('Tinggalkan tanpa menyimpan? Urutan poster yang belum disimpan akan hilang.')
+  )
+    return false
 })
 
 const showNew = ref(false)
@@ -100,10 +119,14 @@ async function onCreated(created: Page) {
   await refreshPages()
   selectPage(created.id)
 }
+const { isSuper } = useSession()
 const confirmDefault = ref(false)
 async function save(extra: Partial<Page> = {}) {
   if (!page.value) return
-  await $fetch(`/api/pages/${page.value.id}`, { method: 'PUT', body: { posterIds: order.value, ...extra } })
+  await $fetch(`/api/pages/${page.value.id}`, {
+    method: 'PUT',
+    body: { posterIds: order.value, ...extra },
+  })
   await refreshPages()
   toast.success(
     extra.isDefault
@@ -112,6 +135,20 @@ async function save(extra: Partial<Page> = {}) {
         ? 'Halaman diterbitkan. Kartu yang dipetakan langsung menampilkan versi baru.'
         : 'Urutan poster disimpan.',
   )
+}
+
+/** Hands the page to a marketing user; saved at once, apart from the poster order. */
+async function setOwner(ownerId: string | null) {
+  const current = page.value
+  if (!current || ownerId === current.ownerId) return
+  try {
+    await $fetch(`/api/pages/${current.id}`, { method: 'PUT', body: { ownerId } })
+  } catch (e: any) {
+    toast.error(e?.data?.data?.errors?.ownerId ?? 'Marketing belum bisa diganti. Coba lagi.')
+    return
+  }
+  await refreshPages()
+  toast.success(ownerId ? 'Marketing penanggung jawab disimpan.' : 'Halaman kini tanpa marketing.')
 }
 
 const TONE: Record<PosterState, string> = {
@@ -129,20 +166,34 @@ const preview = usePosterPreview(() => ({
 
 <template>
   <div>
-    <AdminPageHeader title="Halaman" description="Halaman adalah poster yang dibuka kartu NFC. Susun urutan poster, lalu terbitkan.">
-      <Button v-if="page" class="h-11" @click="save({ status: 'published' })">{{
-        dirty ? 'Simpan & terbitkan' : 'Terbitkan halaman'
-      }}</Button>
-      <DropdownMenu v-if="page">
+    <AdminPageHeader
+      title="Halaman"
+      description="Halaman adalah poster yang dibuka kartu NFC. Susun urutan poster, lalu terbitkan."
+    >
+      <Button v-if="page" class="h-11" @click="save({ status: 'published' })">
+        {{ dirty ? 'Simpan & terbitkan' : 'Terbitkan halaman' }}
+      </Button>
+      <!-- The general page is a Super Admin choice (the server refuses it for staff). -->
+      <DropdownMenu v-if="page && isSuper">
         <DropdownMenuTrigger as-child>
-          <Button variant="outline" size="icon" class="size-11" aria-label="Opsi halaman lainnya"><Ellipsis class="size-4" /></Button>
+          <Button variant="outline" size="icon" class="size-11" aria-label="Opsi halaman lainnya">
+            <Ellipsis class="size-4" />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-64">
-          <DropdownMenuItem class="min-h-11 flex-col items-start gap-0" :disabled="page?.isDefault" @select="confirmDefault = true">
+          <DropdownMenuItem
+            class="min-h-11 flex-col items-start gap-0"
+            :disabled="page?.isDefault"
+            @select="confirmDefault = true"
+          >
             <span class="font-semibold">Jadikan halaman umum</span>
-            <span class="text-xs text-muted-foreground">{{
-              page?.isDefault ? 'Halaman ini sudah halaman umum' : 'Untuk kartu nonaktif atau belum dipetakan'
-            }}</span>
+            <span class="text-xs text-muted-foreground">
+              {{
+                page?.isDefault
+                  ? 'Halaman ini sudah halaman umum'
+                  : 'Untuk kartu nonaktif atau belum dipetakan'
+              }}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -160,21 +211,32 @@ const preview = usePosterPreview(() => ({
             aria-label="Buat halaman baru"
             title="Buat halaman baru"
             @click="showNew = true"
-            ><Plus class="size-4"
-          /></Button>
+          >
+            <Plus class="size-4" />
+          </Button>
         </div>
         <button
           v-for="p in pages"
           :key="p.id"
           type="button"
           :aria-current="p.id === selectedId ? 'page' : undefined"
-          :class="['rounded-xl p-3 text-left', p.id === selectedId ? 'border-2 border-primary' : 'border']"
+          :class="[
+            'rounded-xl p-3 text-left',
+            p.id === selectedId ? 'border-2 border-primary' : 'border',
+          ]"
           @click="selectPage(p.id)"
         >
           <b class="text-sm font-semibold">{{ p.name }}</b>
-          <div class="text-xs text-muted-foreground">{{ p.posterIds.length }} poster · {{ p.cardCount }} kartu</div>
+          <div class="text-xs text-muted-foreground">
+            {{ p.posterIds.length }} poster · {{ p.cardCount }} kartu
+          </div>
+          <div v-if="p.ownerName" class="truncate text-xs text-muted-foreground">
+            Marketing: {{ p.ownerName }}
+          </div>
           <AdminStatusPill v-if="p.isDefault" class="mt-1.5">Halaman umum default</AdminStatusPill>
-          <AdminStatusPill v-else-if="p.status === 'draft'" tone="warning" class="mt-1.5">Draft</AdminStatusPill>
+          <AdminStatusPill v-else-if="p.status === 'draft'" tone="warning" class="mt-1.5">
+            Draft
+          </AdminStatusPill>
         </button>
       </nav>
 
@@ -185,19 +247,39 @@ const preview = usePosterPreview(() => ({
         title="Belum ada halaman"
         description="Buat halaman pertama, susun posternya, lalu petakan kartu NFC ke halaman itu."
       >
-        <Button class="h-11" @click="showNew = true"><Plus class="size-4" />Buat halaman</Button>
+        <Button class="h-11" @click="showNew = true">
+          <Plus class="size-4" />
+          Buat halaman
+        </Button>
       </AdminEmptyState>
       <Card v-if="page" class="min-w-0 grow-[999] basis-96 gap-3 p-5">
+        <AdminOwnerSelect
+          id="page-owner"
+          :model-value="page.ownerId"
+          :current-name="page.ownerName"
+          hint="Disimpan langsung. Ketukan kartu tetap dihitung untuk pemilik kartunya."
+          class="mb-2 border-b pb-4 sm:max-w-sm"
+          @update:model-value="setOwner"
+        />
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-base font-semibold">Urutan poster</h2>
-          <Button variant="outline" class="h-10" :disabled="!addable.length" @click="showAdd = !showAdd">
-            <Plus class="size-4" />Tambah poster
+          <Button
+            variant="outline"
+            class="h-10"
+            :disabled="!addable.length"
+            @click="showAdd = !showAdd"
+          >
+            <Plus class="size-4" />
+            Tambah poster
           </Button>
         </div>
         <p class="text-[13px] text-muted-foreground">
           Seret pegangan atau pakai tombol panah. Pengumuman penting selalu tampil paling atas.
         </p>
-        <div v-if="announcement" class="rounded-lg bg-amber-50 px-3 py-2.5 text-[13px] text-amber-900">
+        <div
+          v-if="announcement"
+          class="rounded-lg bg-amber-50 px-3 py-2.5 text-[13px] text-amber-900"
+        >
           Pengumuman aktif: “{{ announcement.name }}” · tetap di atas
         </div>
         <div v-if="showAdd" class="flex flex-col gap-1 rounded-lg border bg-secondary p-2">
@@ -208,7 +290,8 @@ const preview = usePosterPreview(() => ({
             class="flex min-h-11 items-center gap-3 rounded-md px-2 text-left text-sm hover:bg-background"
             @click="addPoster(p.id)"
           >
-            <img :src="p.imageUrl" alt="" class="h-10 w-8 rounded object-cover" /><span class="grow">{{ p.name }}</span>
+            <img :src="p.imageUrl" alt="" class="h-10 w-8 rounded object-cover" />
+            <span class="grow">{{ p.name }}</span>
             <AdminStatusPill>{{ POSTER_STATE[p.state].label }}</AdminStatusPill>
           </button>
         </div>
@@ -226,10 +309,13 @@ const preview = usePosterPreview(() => ({
           role="status"
           class="flex flex-wrap items-center gap-2.5 rounded-lg border border-ring bg-secondary py-2 pr-2 pl-3.5 text-sm"
         >
-          <span class="min-w-48 grow text-secondary-foreground"
-            ><b class="font-semibold">Urutan berubah, belum disimpan.</b> Pengunjung masih melihat urutan lama.</span
-          >
-          <Button variant="outline" class="h-10" @click="order = [...(page?.posterIds ?? [])]">Batalkan</Button>
+          <span class="min-w-48 grow text-secondary-foreground">
+            <b class="font-semibold">Urutan berubah, belum disimpan.</b>
+            Pengunjung masih melihat urutan lama.
+          </span>
+          <Button variant="outline" class="h-10" @click="order = [...(page?.posterIds ?? [])]">
+            Batalkan
+          </Button>
           <Button class="h-10" @click="save()">Simpan urutan</Button>
         </div>
         <ol class="flex flex-col gap-2">
@@ -237,7 +323,10 @@ const preview = usePosterPreview(() => ({
             v-for="(p, i) in blocks"
             :key="p.id"
             draggable="true"
-            :class="['flex items-center gap-2 rounded-xl border bg-background py-1.5 pr-2 pl-1', dragFrom === i && 'opacity-50']"
+            :class="[
+              'flex items-center gap-2 rounded-xl border bg-background py-1.5 pr-2 pl-1',
+              dragFrom === i && 'opacity-50',
+            ]"
             @dragstart="dragFrom = i"
             @dragover.prevent
             @drop="onDrop(i)"
@@ -249,17 +338,30 @@ const preview = usePosterPreview(() => ({
               <GripVertical class="size-4" />
             </span>
             <span class="w-5 text-center text-[13px] text-muted-foreground">{{ i + 1 }}</span>
-            <img :src="p.imageUrl" alt="" :class="['h-12 w-10 rounded object-cover', TONE[p.state]]" />
+            <img
+              :src="p.imageUrl"
+              alt=""
+              :class="['h-12 w-10 rounded object-cover', TONE[p.state]]"
+            />
             <div class="min-w-0 grow">
               <b class="block truncate text-sm font-medium">{{ p.name }}</b>
-              <span class="text-xs text-muted-foreground">{{
-                p.state === 'tayang'
-                  ? 'Sedang tayang'
-                  : `Tidak tampil
+              <span class="text-xs text-muted-foreground">
+                {{
+                  p.state === 'tayang'
+                    ? 'Sedang tayang'
+                    : `Tidak tampil
                 sekarang · ${POSTER_STATE[p.state].label}`
-              }}</span>
+                }}
+              </span>
             </div>
-            <Button variant="outline" size="icon" class="size-9" :disabled="i === 0" :aria-label="`Naikkan ${p.name}`" @click="move(i, -1)">
+            <Button
+              variant="outline"
+              size="icon"
+              class="size-9"
+              :disabled="i === 0"
+              :aria-label="`Naikkan ${p.name}`"
+              @click="move(i, -1)"
+            >
               <ChevronUp class="size-4" />
             </Button>
             <Button
@@ -285,13 +387,18 @@ const preview = usePosterPreview(() => ({
         </ol>
       </Card>
 
-      <aside v-if="page" aria-label="Pratinjau HP" class="flex basis-80 grow flex-col items-center gap-2">
+      <aside
+        v-if="page"
+        aria-label="Pratinjau HP"
+        class="flex grow basis-80 flex-col items-center gap-2"
+      >
         <AdminPhoneFrame>
           <PosterView v-if="preview" :view="preview" preview class="min-h-full" />
         </AdminPhoneFrame>
-        <span class="text-center text-xs text-muted-foreground"
-          >Hanya poster yang sedang tayang yang tampil. Pratinjau mengikuti urutan di layar, termasuk yang belum disimpan.</span
-        >
+        <span class="text-center text-xs text-muted-foreground">
+          Hanya poster yang sedang tayang yang tampil. Pratinjau mengikuti urutan di layar, termasuk
+          yang belum disimpan.
+        </span>
       </aside>
     </div>
 
@@ -299,16 +406,20 @@ const preview = usePosterPreview(() => ({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Simpan urutan “{{ page?.name }}” dulu?</AlertDialogTitle>
-          <AlertDialogDescription
-            >Anda mengubah urutan poster tapi belum menyimpannya. Bila pindah ke “{{ switchName }}” tanpa menyimpan, perubahan ini
-            hilang.</AlertDialogDescription
-          >
+          <AlertDialogDescription>
+            Anda mengubah urutan poster tapi belum menyimpannya. Bila pindah ke “{{ switchName }}”
+            tanpa menyimpan, perubahan ini hilang.
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="flex-wrap">
           <Button variant="outline" class="h-11" @click="switchTo = null">Tetap di sini</Button>
-          <Button variant="outline" class="h-11 text-destructive hover:text-destructive" @click="resolveSwitch(false)"
-            >Buang perubahan</Button
+          <Button
+            variant="outline"
+            class="h-11 text-destructive hover:text-destructive"
+            @click="resolveSwitch(false)"
           >
+            Buang perubahan
+          </Button>
           <Button class="h-11" @click="resolveSwitch(true)">Simpan &amp; pindah</Button>
         </AlertDialogFooter>
       </AlertDialogContent>

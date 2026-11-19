@@ -8,7 +8,12 @@ import { MAX_ELEMENTS, READABLE_FONT, isLocked, smallestFont } from '#shared/des
 import type { DesignElement, PosterDesign } from '#shared/design'
 import type { Settings } from '#shared/types'
 
-const props = defineProps<{ initial: PosterDesign; brand: Settings; canOpenSettings: boolean; finishing?: boolean }>()
+const props = defineProps<{
+  initial: PosterDesign
+  brand: Settings
+  canOpenSettings: boolean
+  finishing?: boolean
+}>()
 const emit = defineEmits<{ finish: [design: PosterDesign, image: Blob] }>()
 
 const design = ref<PosterDesign>(structuredClone(toRaw(props.initial)))
@@ -69,7 +74,11 @@ function setBackground(bg: { top: string; bottom: string }) {
 
 // Keyboard: Delete removes, Ctrl+Z / Ctrl+Y undo and redo, Esc deselects. Ignored while typing.
 useEventListener(window, 'keydown', (e: KeyboardEvent) => {
-  if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable="true"]')) return
+  if (
+    e.target instanceof Element &&
+    e.target.closest('input, textarea, select, [contenteditable="true"]')
+  )
+    return
   const mod = e.ctrlKey || e.metaKey
   if (mod && e.key.toLowerCase() === 'z') {
     e.preventDefault()
@@ -101,7 +110,9 @@ async function finish() {
 </script>
 
 <template>
-  <div class="flex min-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-2xl border bg-background">
+  <div
+    class="flex min-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-2xl border bg-background"
+  >
     <div class="flex flex-wrap items-center gap-2 border-b px-4 py-3">
       <Button
         type="button"
@@ -111,8 +122,9 @@ async function finish() {
         aria-label="Batalkan (Ctrl+Z)"
         :disabled="!history.canUndo.value"
         @click="history.undo()"
-        ><Undo2 class="size-5"
-      /></Button>
+      >
+        <Undo2 class="size-5" />
+      </Button>
       <Button
         type="button"
         variant="outline"
@@ -121,8 +133,9 @@ async function finish() {
         aria-label="Ulangi (Ctrl+Y)"
         :disabled="!history.canRedo.value"
         @click="history.redo()"
-        ><Redo2 class="size-5"
-      /></Button>
+      >
+        <Redo2 class="size-5" />
+      </Button>
       <div class="ml-2 flex items-center gap-1.5 text-sm">
         <Button
           type="button"
@@ -132,9 +145,12 @@ async function finish() {
           aria-label="Perkecil tampilan"
           :disabled="zoom === 0"
           @click="zoom--"
-          ><Minus class="size-4"
-        /></Button>
-        <span class="w-12 text-center tabular-nums" aria-live="polite">{{ Math.round(scale * 100) }}%</span>
+        >
+          <Minus class="size-4" />
+        </Button>
+        <span class="w-12 text-center tabular-nums" aria-live="polite">
+          {{ Math.round(scale * 100) }}%
+        </span>
         <Button
           type="button"
           variant="outline"
@@ -143,20 +159,35 @@ async function finish() {
           aria-label="Perbesar tampilan"
           :disabled="zoom === ZOOMS.length - 1"
           @click="zoom++"
-          ><Plus class="size-4"
-        /></Button>
+        >
+          <Plus class="size-4" />
+        </Button>
       </div>
       <span class="ml-2 text-sm text-muted-foreground">HP 4:5 · 1080 × 1350</span>
       <span class="grow" />
-      <span class="text-sm text-green-700">{{ history.changed.value ? 'Tersimpan otomatis di browser ini' : '' }}</span>
-      <Button type="button" class="h-12 px-5 text-base" :disabled="finishing" @click="finish">{{
-        finishing ? 'Menyimpan gambar…' : 'Selesai: lanjut lengkapi →'
-      }}</Button>
+      <span class="text-sm text-green-700">
+        {{ history.changed.value ? 'Tersimpan otomatis di browser ini' : '' }}
+      </span>
+      <Button type="button" class="h-12 px-5 text-base" :disabled="finishing" @click="finish">
+        {{ finishing ? 'Menyimpan gambar…' : 'Selesai: lanjut lengkapi →' }}
+      </Button>
     </div>
-    <p v-if="exportError" class="border-b bg-red-50 px-4 py-2 text-[15px] font-semibold text-destructive" role="alert">{{ exportError }}</p>
+    <p
+      v-if="exportError"
+      class="border-b bg-red-50 px-4 py-2 text-[15px] font-semibold text-destructive"
+      role="alert"
+    >
+      {{ exportError }}
+    </p>
 
     <div class="flex min-h-0 grow">
-      <DesignTools :design="design" :selected-id="selectedId" @add="add" @background="setBackground" @select="selectedId = $event" />
+      <DesignTools
+        :design="design"
+        :selected-id="selectedId"
+        @add="add"
+        @background="setBackground"
+        @select="selectedId = $event"
+      />
 
       <main class="flex min-w-0 grow flex-col items-center gap-4 overflow-auto bg-zinc-100 p-6">
         <div class="rounded shadow-[0_12px_40px_rgba(0,0,0,.18)]">
@@ -171,16 +202,27 @@ async function finish() {
           />
         </div>
         <div role="status" class="flex flex-wrap justify-center gap-2 text-[15px]">
-          <span v-if="readable" class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-green-100 px-3 text-green-900">
-            <CircleCheck class="size-4" aria-hidden="true" />Ukuran teks terbaca di HP
+          <span
+            v-if="readable"
+            class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-green-100 px-3 text-green-900"
+          >
+            <CircleCheck class="size-4" aria-hidden="true" />
+            Ukuran teks terbaca di HP
           </span>
-          <span v-else class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-amber-100 px-3 text-amber-950">
-            <CircleAlert class="size-4" aria-hidden="true" />Teks terkecil {{ minFont }} px: mungkin sulit dibaca di HP. Disarankan minimal
+          <span
+            v-else
+            class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-amber-100 px-3 text-amber-950"
+          >
+            <CircleAlert class="size-4" aria-hidden="true" />
+            Teks terkecil {{ minFont }} px: mungkin sulit dibaca di HP. Disarankan minimal
             {{ READABLE_FONT }} px.
           </span>
-          <span v-if="limitReached" class="inline-flex min-h-9 items-center rounded-full bg-amber-100 px-3 text-amber-950"
-            >Batas {{ MAX_ELEMENTS }} elemen tercapai.</span
+          <span
+            v-if="limitReached"
+            class="inline-flex min-h-9 items-center rounded-full bg-amber-100 px-3 text-amber-950"
           >
+            Batas {{ MAX_ELEMENTS }} elemen tercapai.
+          </span>
         </div>
       </main>
 

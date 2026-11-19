@@ -2,13 +2,31 @@ import { describe, expect, it } from 'vitest'
 import type { Poster, User } from '#shared/types'
 import { PUBLIC_POSTER_FIELDS } from '#shared/types'
 import { pickClientIp } from '../server/utils/clientIp'
-import { LOGIN_LOCK_MS, MAX_LOGIN_ATTEMPTS, createLoginGuard } from '../server/utils/lockout'
-import { BODY_LIMIT, UPLOAD_BODY_LIMIT, bodySizeError, originHost } from '../server/utils/requestChecks'
+import {
+  ACCOUNT_LOCK_ATTEMPTS,
+  LOGIN_LOCK_MS,
+  MAX_LOGIN_ATTEMPTS,
+  createLoginGuard,
+} from '../server/utils/lockout'
+import {
+  BODY_LIMIT,
+  UPLOAD_BODY_LIMIT,
+  bodySizeError,
+  originHost,
+} from '../server/utils/requestChecks'
 import { imagePosterSchema } from '../server/utils/validation'
 import { adminReturnPath } from '../app/utils/returnPath'
 
 const NOW = Date.parse('2026-10-27T08:00:00Z')
-const user = (status: User['status']): User => ({ id: 'u9', name: 'Tes', email: 'tes@x.test', role: 'staff', status, lastLogin: null })
+const IP = '203.0.113.9'
+const user = (status: User['status']): User => ({
+  id: 'u9',
+  name: 'Tes',
+  email: 'tes@x.test',
+  role: 'staff',
+  status,
+  lastLogin: null,
+})
 
 describe('client IP for rate limiting (SEC-04)', () => {
   it('ignores X-Forwarded-For unless a proxy is trusted', () => {
@@ -26,10 +44,10 @@ describe('login guard (SEC-05)', () => {
     const g = createLoginGuard()
     const out: string[] = []
     for (let i = 0; i <= MAX_LOGIN_ATTEMPTS; i++) {
-      const lock = g.blocked('a@x.test', u, NOW)
+      const lock = g.blocked('a@x.test', IP, u, NOW)
       if (lock) out.push('423')
       else {
-        const r = g.fail('a@x.test', u, NOW)
+        const r = g.fail('a@x.test', IP, u, NOW)
         out.push(r.locked ? '423' : `401:${r.remaining}`)
       }
     }
@@ -45,19 +63,21 @@ describe('login guard (SEC-05)', () => {
   it('stand-in locks never change a deactivated account, and expire like real ones', () => {
     const g = createLoginGuard()
     const u = user('inactive')
-    for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i++) g.fail('a@x.test', u, NOW)
+    for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i++) g.fail('a@x.test', IP, u, NOW)
     expect(u.status).toBe('inactive')
-    expect(g.blocked('a@x.test', u, NOW + 1)).not.toBeNull()
-    expect(g.blocked('a@x.test', u, NOW + LOGIN_LOCK_MS + 1)).toBeNull()
+    expect(g.blocked('a@x.test', IP, u, NOW + 1)).not.toBeNull()
+    expect(g.blocked('a@x.test', IP, u, NOW + LOGIN_LOCK_MS + 1)).toBeNull()
     expect(u.status).toBe('inactive')
   })
 
-  it('a stand-in lock does not block an account that became active', () => {
+  it('an account-wide stand-in lock does not block an account that became active', () => {
     const g = createLoginGuard()
     const u = user('inactive')
-    for (let i = 0; i < MAX_LOGIN_ATTEMPTS; i++) g.fail('a@x.test', u, NOW)
+    // Spread over many addresses, so only the account-wide stand-in is reached.
+    for (let i = 0; i < ACCOUNT_LOCK_ATTEMPTS; i++) g.fail('a@x.test', `10.0.0.${i}`, u, NOW)
+    expect(g.blocked('a@x.test', IP, u, NOW + 1)).not.toBeNull()
     u.status = 'active'
-    expect(g.blocked('a@x.test', u, NOW + 1)).toBeNull()
+    expect(g.blocked('a@x.test', IP, u, NOW + 1)).toBeNull()
   })
 })
 
@@ -88,9 +108,16 @@ describe('uploads (SEC-06)', () => {
       start: '2026-10-01',
       end: '2026-10-02',
     }
-    expect(imagePosterSchema.safeParse({ ...base, imageUrl: '/api/uploads/f0123456789abcdef0123456789abcdef' }).success).toBe(true)
+    expect(
+      imagePosterSchema.safeParse({
+        ...base,
+        imageUrl: '/api/uploads/f0123456789abcdef0123456789abcdef',
+      }).success,
+    ).toBe(true)
     for (const imageUrl of ['/api/uploads/f101', '/api/uploads/f0123456789ABCDEF0123456789ABCDEF'])
-      expect(imagePosterSchema.safeParse({ ...base, imageUrl }).error?.issues[0]?.path).toEqual(['imageUrl'])
+      expect(imagePosterSchema.safeParse({ ...base, imageUrl }).error?.issues[0]?.path).toEqual([
+        'imageUrl',
+      ])
   })
 })
 

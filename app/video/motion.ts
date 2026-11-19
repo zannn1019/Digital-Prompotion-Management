@@ -7,7 +7,9 @@ import { EASE, STAGE } from './timeline'
 export function words(el: HTMLElement) {
   if (!el.dataset.split) {
     const parts = (el.textContent ?? '').trim().split(/\s+/)
-    el.innerHTML = parts.map(w => `<span style="display:inline-block;white-space:pre">${w} </span>`).join('')
+    el.innerHTML = parts
+      .map(w => `<span style="display:inline-block;white-space:pre">${w} </span>`)
+      .join('')
     el.dataset.split = '1'
   }
   return Array.from(el.children) as HTMLElement[]
@@ -15,7 +17,12 @@ export function words(el: HTMLElement) {
 
 /** Words rise in one after another. */
 export function revealWords(tl: gsap.core.Timeline, el: HTMLElement, at: number, stagger = 0.08) {
-  tl.fromTo(words(el), { autoAlpha: 0, y: 34 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: EASE.in, stagger }, at)
+  tl.fromTo(
+    words(el),
+    { autoAlpha: 0, y: 34 },
+    { autoAlpha: 1, y: 0, duration: 0.7, ease: EASE.in, stagger },
+    at,
+  )
 }
 
 /** Counts a number up from half its value; keeps the app's own formatting (id-ID). */
@@ -33,12 +40,23 @@ export function countUp(tl: gsap.core.Timeline, el: HTMLElement, at: number, dur
 }
 
 /** Types text into an input or textarea, character by character. */
-export function typeInto(tl: gsap.core.Timeline, el: HTMLInputElement | HTMLTextAreaElement, text: string, at: number, cps = 12) {
+export function typeInto(
+  tl: gsap.core.Timeline,
+  el: HTMLInputElement | HTMLTextAreaElement,
+  text: string,
+  at: number,
+  cps = 12,
+) {
   const o = { n: 0 }
   const onUpdate = () => {
     el.value = text.slice(0, Math.round(o.n))
   }
-  tl.fromTo(o, { n: 0 }, { n: text.length, duration: text.length / cps, ease: 'none', onUpdate }, at)
+  tl.fromTo(
+    o,
+    { n: 0 },
+    { n: text.length, duration: text.length / cps, ease: 'none', onUpdate },
+    at,
+  )
 }
 
 /** Camera: brings layer point (cx, cy) to the stage centre at zoom z. The layer's origin must be 0 0. */
@@ -51,7 +69,12 @@ export function rectIn(layer: HTMLElement, el: Element, pad = 16) {
   const a = layer.getBoundingClientRect()
   const b = el.getBoundingClientRect()
   const s = a.width / layer.offsetWidth || 1
-  return { left: (b.left - a.left) / s - pad, top: (b.top - a.top) / s - pad, width: b.width / s + pad * 2, height: b.height / s + pad * 2 }
+  return {
+    left: (b.left - a.left) / s - pad,
+    top: (b.top - a.top) / s - pad,
+    width: b.width / s + pad * 2,
+    height: b.height / s + pad * 2,
+  }
 }
 
 export { gsap }

@@ -2,8 +2,18 @@ import type { Poster, PosterState } from '../types'
 
 // The app's calendar runs on Jakarta time (WIB): "today" changes at midnight WIB, on the server
 // and in every browser, whatever their own time zone.
-const JAKARTA_DATE = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' })
-const JAKARTA_TIME = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const JAKARTA_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Jakarta',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+const JAKARTA_TIME = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Jakarta',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
 
 /** Today's date in Jakarta, as YYYY-MM-DD. */
 export function today(now: Date = new Date()): string {
@@ -81,7 +91,9 @@ export function fmtNumber(n: number) {
 }
 
 export function fmtBytes(n: number) {
-  return n >= 1048576 ? `${(n / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.round(n / 1000)} KB`
+  return n >= 1048576
+    ? `${(n / 1048576).toFixed(1).replace('.', ',')} MB`
+    : `${Math.round(n / 1000)} KB`
 }
 
 export function posterState(p: Poster, on: string = today()): PosterState {

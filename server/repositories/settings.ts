@@ -17,11 +17,15 @@ export function settingsRepo(db: Database) {
     },
 
     /** Saves the given fields; returns the new settings and which keys actually changed. */
-    async update(patch: Partial<Settings>): Promise<{ settings: Settings; changed: (keyof Settings)[] }> {
+    async update(
+      patch: Partial<Settings>,
+    ): Promise<{ settings: Settings; changed: (keyof Settings)[] }> {
       return db.transaction(async tx => {
         const [row] = await tx.select().from(settings).where(eq(settings.key, KEY)).for('update')
         const current: Settings = { ...DEFAULT_SETTINGS, ...row?.value }
-        const changed = (Object.keys(patch) as (keyof Settings)[]).filter(k => patch[k] !== current[k])
+        const changed = (Object.keys(patch) as (keyof Settings)[]).filter(
+          k => patch[k] !== current[k],
+        )
         const next = { ...current, ...patch }
         await tx
           .insert(settings)
@@ -47,20 +51,34 @@ const toEntry = (r: AuditRow): AuditEntry => ({
 
 export function auditRepo(db: Database) {
   return {
-    async log(userId: string, action: string, entity: string, target: string, before = '', after = ''): Promise<void> {
+    async log(
+      userId: string,
+      action: string,
+      entity: string,
+      target: string,
+      before = '',
+      after = '',
+    ): Promise<void> {
       await db.insert(audit).values({ userId, action, entity, target, before, after })
     },
 
     /** Newest first. The Audit Log page shows at most this many. */
     async list(limit = 2000): Promise<AuditEntry[]> {
-      return (await db.select().from(audit).orderBy(desc(audit.at), desc(audit.id)).limit(limit)).map(toEntry)
+      return (
+        await db.select().from(audit).orderBy(desc(audit.at), desc(audit.id)).limit(limit)
+      ).map(toEntry)
     },
 
     /** Latest changes for the dashboard, without sign-ins. */
     async recentChanges(limit = 5): Promise<AuditEntry[]> {
-      return (await db.select().from(audit).where(ne(audit.entity, 'Sesi')).orderBy(desc(audit.at), desc(audit.id)).limit(limit)).map(
-        toEntry,
-      )
+      return (
+        await db
+          .select()
+          .from(audit)
+          .where(ne(audit.entity, 'Sesi'))
+          .orderBy(desc(audit.at), desc(audit.id))
+          .limit(limit)
+      ).map(toEntry)
     },
   }
 }

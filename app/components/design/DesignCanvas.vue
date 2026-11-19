@@ -47,7 +47,9 @@ const trRef = ref<VueKonvaRef<Konva.Transformer>>()
 // Text is measured when drawn, so wait for the poster font before the first draw.
 const fontsReady = ref(false)
 onMounted(async () => {
-  await Promise.all(['400', '800'].map(w => document.fonts.load(`${w} 40px "Plus Jakarta Sans Variable"`))).catch(() => {})
+  await Promise.all(
+    ['400', '800'].map(w => document.fonts.load(`${w} 40px "Plus Jakarta Sans Variable"`)),
+  ).catch(() => {})
   fontsReady.value = true
 })
 
@@ -94,7 +96,9 @@ const base = (el: DesignElement) => ({
 
 /** Logo tile text, e.g. "RS Bethesda Yogyakarta" -> "RB". */
 const brandInitials = computed(() => initials(props.brand.company))
-const waDisplay = computed(() => (props.brand.wa.startsWith('62') ? `0${props.brand.wa.slice(2)}` : props.brand.wa))
+const waDisplay = computed(() =>
+  props.brand.wa.startsWith('62') ? `0${props.brand.wa.slice(2)}` : props.brand.wa,
+)
 const site = computed(() => props.brand.website.replace(/^https?:\/\//, '').replace(/\/$/, ''))
 
 const selected = computed(() => props.design.elements.find(e => e.id === props.selectedId) ?? null)
@@ -109,12 +113,19 @@ const trConfig = computed(() => {
     anchorCornerRadius: 3,
     rotationSnaps: [0, 90, 180, 270],
     rotateAnchorOffset: 36,
-    boundBoxFunc: (old: { width: number; height: number }, box: { width: number; height: number }) =>
-      Math.abs(box.width) < 20 || Math.abs(box.height) < 20 ? old : box,
+    boundBoxFunc: (
+      old: { width: number; height: number },
+      box: { width: number; height: number },
+    ) => (Math.abs(box.width) < 20 || Math.abs(box.height) < 20 ? old : box),
   }
   if (!el || isLocked(el)) return { ...common, resizeEnabled: false, rotateEnabled: false }
   if (el.type === 'text') return { ...common, enabledAnchors: ['middle-left', 'middle-right'] }
-  if (el.type === 'label') return { ...common, keepRatio: true, enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'] }
+  if (el.type === 'label')
+    return {
+      ...common,
+      keepRatio: true,
+      enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+    }
   return common
 })
 
@@ -168,9 +179,14 @@ function onTransformEnd(n: Konva.Node) {
   const sx = n.scaleX()
   const sy = n.scaleY()
   n.scale({ x: 1, y: 1 })
-  const patch: Record<string, number> = { x: Math.round(n.x()), y: Math.round(n.y()), rotation: Math.round(n.rotation()) }
+  const patch: Record<string, number> = {
+    x: Math.round(n.x()),
+    y: Math.round(n.y()),
+    rotation: Math.round(n.rotation()),
+  }
   if (el.type === 'text') patch.width = Math.round(n.width())
-  else if (el.type === 'label') patch.fontSize = Math.round(Math.min(MAX_FONT, Math.max(MIN_FONT, el.fontSize * sy)))
+  else if (el.type === 'label')
+    patch.fontSize = Math.round(Math.min(MAX_FONT, Math.max(MIN_FONT, el.fontSize * sy)))
   else if (el.type === 'rect' || el.type === 'image') {
     patch.width = Math.round(Math.max(10, el.width * sx))
     patch.height = Math.round(Math.max(10, el.height * sy))
@@ -189,7 +205,9 @@ watch(trRef, tr => {
 
 /** Exports the design at full size (1080 × 1350) as WebP, or PNG where WebP is unsupported. */
 async function exportBlob(): Promise<Blob> {
-  await Promise.all(props.design.elements.flatMap(el => (el.type === 'image' ? [loadImage(el.src)] : [])))
+  await Promise.all(
+    props.design.elements.flatMap(el => (el.type === 'image' ? [loadImage(el.src)] : [])),
+  )
   await nextTick()
   const tr = trRef.value?.getNode()
   const stage = stageRef.value?.getStage()
@@ -197,7 +215,11 @@ async function exportBlob(): Promise<Blob> {
   const before = tr?.nodes() ?? []
   tr?.nodes([])
   try {
-    return (await stage.toBlob({ pixelRatio: 1 / props.scale, mimeType: 'image/webp', quality: 0.92 })) as Blob
+    return (await stage.toBlob({
+      pixelRatio: 1 / props.scale,
+      mimeType: 'image/webp',
+      quality: 0.92,
+    })) as Blob
   } finally {
     tr?.nodes(before)
   }
@@ -210,7 +232,13 @@ defineExpose({ exportBlob })
     <KStage
       v-if="fontsReady"
       ref="stageRef"
-      :config="{ width: W * scale, height: H * scale, scaleX: scale, scaleY: scale, listening: !readonly }"
+      :config="{
+        width: W * scale,
+        height: H * scale,
+        scaleX: scale,
+        scaleY: scale,
+        listening: !readonly,
+      }"
       @mousedown="onStageDown"
       @touchstart="onStageDown"
       @dragend="onDragEnd"
@@ -259,7 +287,13 @@ defineExpose({ exportBlob })
 
           <KRect
             v-else-if="el.type === 'rect'"
-            :config="{ ...base(el), width: el.width, height: el.height, fill: el.fill, cornerRadius: el.cornerRadius }"
+            :config="{
+              ...base(el),
+              width: el.width,
+              height: el.height,
+              fill: el.fill,
+              cornerRadius: el.cornerRadius,
+            }"
           />
 
           <KImage
@@ -275,8 +309,17 @@ defineExpose({ exportBlob })
           />
 
           <KGroup v-else-if="el.type === 'logo'" :config="base(el)">
-            <KRect :config="{ width: el.width, height: BRAND_HEIGHT.logo, fill: '#ffffff', cornerRadius: 20 }" />
-            <KRect :config="{ x: 16, y: 16, width: 64, height: 64, fill: BLUE, cornerRadius: 14 }" />
+            <KRect
+              :config="{
+                width: el.width,
+                height: BRAND_HEIGHT.logo,
+                fill: '#ffffff',
+                cornerRadius: 20,
+              }"
+            />
+            <KRect
+              :config="{ x: 16, y: 16, width: 64, height: 64, fill: BLUE, cornerRadius: 14 }"
+            />
             <KText
               :config="{
                 x: 16,
@@ -322,8 +365,17 @@ defineExpose({ exportBlob })
           </KGroup>
 
           <KGroup v-else-if="el.type === 'info'" :config="base(el)">
-            <KRect :config="{ width: el.width, height: BRAND_HEIGHT.info, fill: '#ffffff', cornerRadius: 20 }" />
-            <KRect :config="{ x: 24, y: 22, width: 190, height: 48, fill: BLUE, cornerRadius: 10 }" />
+            <KRect
+              :config="{
+                width: el.width,
+                height: BRAND_HEIGHT.info,
+                fill: '#ffffff',
+                cornerRadius: 20,
+              }"
+            />
+            <KRect
+              :config="{ x: 24, y: 22, width: 190, height: 48, fill: BLUE, cornerRadius: 10 }"
+            />
             <KText
               :config="{
                 x: 24,

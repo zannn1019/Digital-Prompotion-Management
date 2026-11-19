@@ -12,7 +12,7 @@ const props = defineProps<{ class?: string }>()
     v-model="model"
     :class="
       cn(
-        'h-11 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-60',
+        'h-11 rounded-md border bg-background px-3 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60 md:text-sm',
         props.class,
       )
     "

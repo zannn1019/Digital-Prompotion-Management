@@ -20,11 +20,19 @@ export default defineEventHandler(async event => {
   rateLimit(event, 'upload', 30, 60_000)
   const parts = await readMultipartFormData(event)
   const file = parts?.find(p => p.name === 'file')
-  if (!file?.data?.length) throw createError({ statusCode: 422, statusMessage: 'Pilih file terlebih dahulu.' })
+  if (!file?.data?.length)
+    throw createError({ statusCode: 422, statusMessage: 'Pilih file terlebih dahulu.' })
   if (file.data.length > MAX_BYTES)
-    throw createError({ statusCode: 422, statusMessage: 'Ukuran file melebihi 5 MB. Perkecil ukuran gambar lalu unggah ulang.' })
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'Ukuran file melebihi 5 MB. Perkecil ukuran gambar lalu unggah ulang.',
+    })
   const type = sniff(file.data)
-  if (!type) throw createError({ statusCode: 422, statusMessage: 'Format file tidak didukung. Gunakan PNG, JPG, WebP, atau PDF.' })
+  if (!type)
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'Format file tidak didukung. Gunakan PNG, JPG, WebP, atau PDF.',
+    })
 
   // Keep only a safe display name: no paths, no control characters.
   const name =

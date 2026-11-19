@@ -14,14 +14,41 @@ const text = (max: number) => z.string({ error: REQUIRED }).trim().max(max, tooL
 const requiredText = (max: number) => text(max).min(1, REQUIRED)
 const isoDate = z.string({ error: REQUIRED }).regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal belum benar.')
 /** Only files served by our own upload route (random 128-bit IDs) or the bundled dummies. */
-const ownImage = z.string().regex(/^(\/api\/uploads\/f[0-9a-f]{32}|\/dummy\/[a-z0-9-]+\.svg)$/, 'Unggah file poster terlebih dahulu.')
+const ownImage = z
+  .string()
+  .regex(
+    /^(\/api\/uploads\/f[0-9a-f]{32}|\/dummy\/[a-z0-9-]+\.svg)$/,
+    'Unggah file poster terlebih dahulu.',
+  )
 const ownFile = z.string().regex(/^\/api\/uploads\/f[0-9a-f]{32}$/, 'Unggah file terlebih dahulu.')
-const ownLogo = z.string().regex(/^(\/api\/uploads\/f[0-9a-f]{32}|\/brand\/[a-z0-9-]+\.png)$/, 'Unggah logo terlebih dahulu.')
+const ownLogo = z
+  .string()
+  .regex(
+    /^(\/api\/uploads\/f[0-9a-f]{32}|\/brand\/[a-z0-9-]+\.png)$/,
+    'Unggah logo terlebih dahulu.',
+  )
 const optional = (max: number) => text(max).optional()
+const waNumber = z
+  .string()
+  .trim()
+  .regex(/^62\d{8,13}$/, 'Gunakan format 62… tanpa + atau tanda hubung. Contoh: 628000000001')
+const phoneNumber = z
+  .string()
+  .trim()
+  .regex(/^[0-9+\-\s()]{6,20}$/, 'Nomor hanya boleh berisi angka, spasi, +, atau -.')
+/** The marketing user in charge (the route checks it against the users table); null for nobody. */
+const ownerId = z.string().max(40).nullable().optional()
+/** An optional contact number: empty means none (the buttons then use the one from Settings). */
+const emptyOr = (s: z.ZodString) => z.union([z.literal(''), s]).optional()
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/)
 const num = (min: number, max: number) => z.number().finite().min(min).max(max)
-const elementBase = { id: z.string().regex(/^[a-z0-9]{1,16}$/), x: num(-2000, 3000), y: num(-2000, 3000), rotation: num(-360, 360) }
+const elementBase = {
+  id: z.string().regex(/^[a-z0-9]{1,16}$/),
+  x: num(-2000, 3000),
+  y: num(-2000, 3000),
+  rotation: num(-360, 360),
+}
 const box = { width: num(10, 3000), height: num(10, 3000) }
 
 /** Canvas-editor design. Bounded everywhere so a crafted design cannot bloat storage. */
@@ -54,9 +81,27 @@ export const designSchema = z
               background: hex,
             })
             .strict(),
-          z.object({ ...elementBase, ...box, type: z.literal('rect'), fill: hex, cornerRadius: num(0, 1500) }).strict(),
-          z.object({ ...elementBase, ...box, type: z.literal('image'), src: ownImage, cornerRadius: num(0, 1500) }).strict(),
-          z.object({ ...elementBase, type: z.enum(['logo', 'info']), width: num(200, 3000) }).strict(),
+          z
+            .object({
+              ...elementBase,
+              ...box,
+              type: z.literal('rect'),
+              fill: hex,
+              cornerRadius: num(0, 1500),
+            })
+            .strict(),
+          z
+            .object({
+              ...elementBase,
+              ...box,
+              type: z.literal('image'),
+              src: ownImage,
+              cornerRadius: num(0, 1500),
+            })
+            .strict(),
+          z
+            .object({ ...elementBase, type: z.enum(['logo', 'info']), width: num(200, 3000) })
+            .strict(),
         ]),
       )
       .max(MAX_ELEMENTS),
@@ -65,13 +110,18 @@ export const designSchema = z
 
 const dateOrder = <T extends { start?: string; end?: string }>(v: T, ctx: z.RefinementCtx) => {
   if (v.start && v.end && v.end < v.start)
-    ctx.addIssue({ code: 'custom', path: ['end'], message: 'Tanggal berakhir harus sama atau setelah tanggal mulai.' })
+    ctx.addIssue({
+      code: 'custom',
+      path: ['end'],
+      message: 'Tanggal berakhir harus sama atau setelah tanggal mulai.',
+    })
 }
 
 const posterBase = {
   status: z.enum(['draft', 'published']),
   start: isoDate,
   end: isoDate,
+  ownerId,
 }
 
 export const imagePosterSchema = z
@@ -103,7 +153,10 @@ export const imagePosterSchema = z
     price: optional(POSTER_LIMITS.price),
     priceUnit: optional(POSTER_LIMITS.priceUnit),
     listTitle: optional(POSTER_LIMITS.listTitle),
-    points: z.array(text(POSTER_LIMITS.point)).max(POSTER_LIMITS.points, `Maksimal ${POSTER_LIMITS.points} poin.`).optional(),
+    points: z
+      .array(text(POSTER_LIMITS.point))
+      .max(POSTER_LIMITS.points, `Maksimal ${POSTER_LIMITS.points} poin.`)
+      .optional(),
     terms: optional(POSTER_LIMITS.terms),
     brochureUrl: ownFile.nullable().optional(),
     brochureFile: optional(160),
@@ -135,7 +188,10 @@ export const loginSchema = z
 export const passwordChangeSchema = z
   .object({
     currentPassword: z.string({ error: REQUIRED }).min(1, REQUIRED).max(200),
-    newPassword: z.string({ error: REQUIRED }).min(MIN_PASSWORD_LENGTH, `Minimal ${MIN_PASSWORD_LENGTH} karakter.`).max(200, tooLong(200)),
+    newPassword: z
+      .string({ error: REQUIRED })
+      .min(MIN_PASSWORD_LENGTH, `Minimal ${MIN_PASSWORD_LENGTH} karakter.`)
+      .max(200, tooLong(200)),
   })
   .strict()
   .refine(v => v.newPassword !== v.currentPassword, {
@@ -146,6 +202,7 @@ export const passwordChangeSchema = z
 export const pageCreateSchema = z
   .object({
     name: requiredText(80),
+    ownerId,
   })
   .strict()
 
@@ -156,6 +213,7 @@ export const pageUpdateSchema = z
     status: z.enum(['draft', 'published']).optional(),
     name: requiredText(80).optional(),
     theme: z.enum(['ungu', 'merah', 'hijau']).optional(),
+    ownerId,
   })
   .strict()
 
@@ -169,33 +227,45 @@ export const cardRegisterSchema = z
     label: requiredText(80),
     group: requiredText(80),
     pageId: z.string().max(40).nullable(),
+    ownerId,
   })
   .strict()
 
 export const cardBulkSchema = z
   .object({
-    action: z.enum(['map', 'deactivate', 'activate']),
+    action: z.enum(['map', 'owner', 'deactivate', 'activate']),
     codes: z
       .array(z.string().regex(/^[A-Z0-9]{8}$/))
       .min(1, 'Pilih minimal satu kartu.')
       .max(500),
     pageId: z.string().max(40).nullable().optional(),
+    ownerId,
   })
   .strict()
 
-export const cardWriteSchema = z.object({ ok: z.boolean(), locked: z.boolean().optional() }).strict()
+export const cardWriteSchema = z
+  .object({ ok: z.boolean(), locked: z.boolean().optional() })
+  .strict()
 
 export const userCreateSchema = z
   .object({
     name: requiredText(80),
-    email: z.email('Format email belum benar. Contoh: nama@rs-bethesda.test').trim().toLowerCase().max(254),
-    role: z.enum(['super', 'staff']),
+    email: z
+      .email('Format email belum benar. Contoh: nama@rs-bethesda.test')
+      .trim()
+      .toLowerCase()
+      .max(254),
+    role: z.enum(['super', 'staff', 'marketing', 'approver']),
+    wa: emptyOr(waNumber),
+    phone: emptyOr(phoneNumber),
   })
   .strict()
 
 export const userPatchSchema = z
   .object({
-    role: z.enum(['super', 'staff']).optional(),
+    role: z.enum(['super', 'staff', 'marketing', 'approver']).optional(),
+    wa: emptyOr(waNumber),
+    phone: emptyOr(phoneNumber),
     status: z.enum(['active', 'inactive']).optional(),
     resetPassword: z.literal(true).optional(),
   })
@@ -212,14 +282,8 @@ export const settingsSchema = z
     tagline: text(40),
     logoUrl: ownLogo,
     address: text(160),
-    wa: z
-      .string()
-      .trim()
-      .regex(/^62\d{8,13}$/, 'Gunakan format 62… tanpa + atau tanda hubung. Contoh: 628000000001'),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^[0-9+\-\s()]{6,20}$/, 'Nomor hanya boleh berisi angka, spasi, +, atau -.'),
+    wa: waNumber,
+    phone: phoneNumber,
     email: z.email('Format email belum benar.').trim(),
     hours: text(80),
     website: https,
@@ -236,7 +300,8 @@ export const MAX_EXTEND_DAYS = 366
 /** Why a new end date for "Perpanjang" is refused, or null when it is fine. */
 export function extendEndProblem(currentEnd: string, nextEnd: string): string | null {
   if (nextEnd <= currentEnd) return `Pilih tanggal setelah ${fmtDate(currentEnd)}.`
-  if (daysBetween(currentEnd, nextEnd) > MAX_EXTEND_DAYS) return `Maksimal 1 tahun setelah ${fmtDate(currentEnd)}.`
+  if (daysBetween(currentEnd, nextEnd) > MAX_EXTEND_DAYS)
+    return `Maksimal 1 tahun setelah ${fmtDate(currentEnd)}.`
   return null
 }
 
@@ -255,9 +320,18 @@ export const analyticsQuerySchema = z
     return { to, from: q.from ?? addDays(to, -29) }
   })
   .superRefine((v, ctx) => {
-    if (v.from > v.to) ctx.addIssue({ code: 'custom', path: ['from'], message: 'Tanggal mulai harus sama atau sebelum tanggal akhir.' })
+    if (v.from > v.to)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['from'],
+        message: 'Tanggal mulai harus sama atau sebelum tanggal akhir.',
+      })
     else if (daysBetween(v.from, v.to) + 1 > MAX_ANALYTICS_DAYS)
-      ctx.addIssue({ code: 'custom', path: ['from'], message: `Rentang maksimal ${MAX_ANALYTICS_DAYS} hari.` })
+      ctx.addIssue({
+        code: 'custom',
+        path: ['from'],
+        message: `Rentang maksimal ${MAX_ANALYTICS_DAYS} hari.`,
+      })
   })
 
 /** Field problems become a 422 with `data.errors = { field: message }`, which the forms show inline. */
@@ -271,7 +345,10 @@ function invalid(issues: z.core.$ZodIssue[]): never {
 }
 
 /** Parses the JSON body with a schema. */
-export async function parseBody<S extends z.ZodType>(event: H3Event, schema: S): Promise<z.infer<S>> {
+export async function parseBody<S extends z.ZodType>(
+  event: H3Event,
+  schema: S,
+): Promise<z.infer<S>> {
   const result = schema.safeParse(await readBody(event))
   return result.success ? result.data : invalid(result.error.issues)
 }
@@ -281,3 +358,14 @@ export function parseQuery<S extends z.ZodType>(event: H3Event, schema: S): z.in
   const result = schema.safeParse(getQuery(event))
   return result.success ? result.data : invalid(result.error.issues)
 }
+
+/** "Tolak" needs a reason, so the submitter knows what to change. */
+export const rejectSchema = z
+  .object({
+    note: z
+      .string({ error: 'Tulis alasan penolakan.' })
+      .trim()
+      .min(3, 'Tulis alasan penolakan.')
+      .max(300, tooLong(300)),
+  })
+  .strict()

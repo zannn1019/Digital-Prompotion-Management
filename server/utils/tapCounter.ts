@@ -25,7 +25,12 @@ export function createVisitCounter(windowMs = DEDUPE_MS) {
   const seen = new Map<string, number>()
 
   /** Decides what to do with one request. `key` identifies the card and target (poster/button). */
-  function classify(ip: string, key: string, headers: { secPurpose?: string; purpose?: string; userAgent?: string }, now: number): Visit {
+  function classify(
+    ip: string,
+    key: string,
+    headers: { secPurpose?: string; purpose?: string; userAgent?: string },
+    now: number,
+  ): Visit {
     if (isPrefetch(headers.secPurpose, headers.purpose)) return 'prefetch'
     if (isBot(headers.userAgent)) return 'bot'
     if (seen.size > PRUNE_AT) for (const [k, until] of seen) if (until <= now) seen.delete(k)

@@ -7,7 +7,9 @@ import { CONTACT_BUTTON, CONTACT_BUTTON_ORDER } from '#shared/constants'
 const selected = defineModel<ContactButton[]>({ required: true })
 
 function toggle(k: ContactButton) {
-  const next = selected.value.includes(k) ? selected.value.filter(b => b !== k) : [...selected.value, k]
+  const next = selected.value.includes(k)
+    ? selected.value.filter(b => b !== k)
+    : [...selected.value, k]
   selected.value = CONTACTS.filter(b => next.includes(b))
 }
 const CONTACTS = CONTACT_BUTTON_ORDER.filter(b => b !== 'doc')
@@ -16,9 +18,10 @@ const CONTACTS = CONTACT_BUTTON_ORDER.filter(b => b !== 'doc')
 <template>
   <fieldset class="flex flex-col gap-2">
     <legend class="sr-only">Tombol kontak</legend>
-    <span class="text-[15px] text-muted-foreground"
-      >Tombol pertama yang dicentang jadi tombol besar di bawah layar HP. Nomor dan alamat diambil dari Pengaturan.</span
-    >
+    <span class="text-[15px] text-muted-foreground">
+      Tombol pertama yang dicentang jadi tombol besar di bawah layar HP. WhatsApp, telepon, dan
+      email memakai kontak marketing di bawah; bila kosong, kontak dari Pengaturan.
+    </span>
     <label
       v-for="k in CONTACTS"
       :key="k"
@@ -27,7 +30,12 @@ const CONTACTS = CONTACT_BUTTON_ORDER.filter(b => b !== 'doc')
         selected.includes(k) ? 'border-2 border-primary bg-secondary' : 'border',
       ]"
     >
-      <input type="checkbox" class="size-5 accent-primary" :checked="selected.includes(k)" @change="toggle(k)" />
+      <input
+        type="checkbox"
+        class="size-5 accent-primary"
+        :checked="selected.includes(k)"
+        @change="toggle(k)"
+      />
       {{ CONTACT_BUTTON[k] }}
     </label>
   </fieldset>

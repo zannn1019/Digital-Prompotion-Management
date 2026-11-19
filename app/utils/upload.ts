@@ -10,7 +10,12 @@ export interface UploadedFile {
   type?: string
 }
 
-const TYPE_NAME: Record<string, string> = { 'image/png': 'PNG', 'image/jpeg': 'JPG', 'image/webp': 'WebP', 'application/pdf': 'PDF' }
+const TYPE_NAME: Record<string, string> = {
+  'image/png': 'PNG',
+  'image/jpeg': 'JPG',
+  'image/webp': 'WebP',
+  'application/pdf': 'PDF',
+}
 
 /** Client-side check before uploading; returns a message, or '' when the file is fine. The server checks again. */
 export function checkUpload(f: File, types: readonly string[] = UPLOAD.types): string {

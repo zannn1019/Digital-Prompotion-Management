@@ -6,7 +6,9 @@ export default defineConfig({
   dialect: 'postgresql',
   schema: './server/db/schema.ts',
   out: './server/db/migrations',
-  dbCredentials: { url: process.env.NUXT_DATABASE_URL ?? 'postgres://poster:poster@127.0.0.1:5432/poster_nfc' },
+  dbCredentials: {
+    url: process.env.NUXT_DATABASE_URL ?? 'postgres://poster:poster@127.0.0.1:5432/poster_nfc',
+  },
   strict: true,
   verbose: true,
 })

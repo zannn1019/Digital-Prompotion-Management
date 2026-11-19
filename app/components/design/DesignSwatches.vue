@@ -26,7 +26,9 @@ function pick(v: string) {
         :title="c.name"
         :class="[
           'flex size-11 items-center justify-center rounded-lg border',
-          value.toLowerCase() === c.value ? 'ring-2 ring-zinc-900 ring-offset-2' : 'border-zinc-300',
+          value.toLowerCase() === c.value
+            ? 'ring-2 ring-zinc-900 ring-offset-2'
+            : 'border-zinc-300',
         ]"
         :style="{ background: c.value }"
         @click="pick(c.value)"
@@ -34,7 +36,9 @@ function pick(v: string) {
         <Check
           v-if="value.toLowerCase() === c.value"
           class="size-5"
-          :class="['#ffffff', '#facc15', '#bae6fd'].includes(c.value) ? 'text-zinc-900' : 'text-white'"
+          :class="
+            ['#ffffff', '#facc15', '#bae6fd'].includes(c.value) ? 'text-zinc-900' : 'text-white'
+          "
           aria-hidden="true"
         />
       </button>

@@ -2,12 +2,16 @@
 // https://developer.mozilla.org/docs/Web/API/Web_NFC_API
 
 interface NdefWriter {
-  write: (message: { records: { recordType: string; data: string }[] }, options?: { signal?: AbortSignal }) => Promise<void>
+  write: (
+    message: { records: { recordType: string; data: string }[] },
+    options?: { signal?: AbortSignal },
+  ) => Promise<void>
   makeReadOnly: (options?: { signal?: AbortSignal }) => Promise<void>
 }
 
 /** `stage` says which step failed: 'write' (nothing written) or 'lock' (the URL is on the card, locking it failed). */
-export type NfcResult = { ok: true } | { ok: false; cancelled?: boolean; reason: string; stage?: 'write' | 'lock' }
+export type NfcResult =
+  { ok: true } | { ok: false; cancelled?: boolean; reason: string; stage?: 'write' | 'lock' }
 
 export function useWebNfc() {
   const secureContext = ref(import.meta.client && window.isSecureContext)
@@ -17,23 +21,36 @@ export function useWebNfc() {
   /** Writes one URL record, then optionally locks the tag. Resolves when the tag accepted it. */
   async function writeUrl(url: string, lock: boolean, onLocking?: () => void): Promise<NfcResult> {
     if (!secureContext.value) {
-      return { ok: false, reason: 'Halaman ini harus dibuka melalui alamat https untuk memakai NFC.' }
+      return {
+        ok: false,
+        reason: 'Halaman ini harus dibuka melalui alamat https untuk memakai NFC.',
+      }
     }
     if (!supported.value) {
-      return { ok: false, reason: 'Browser ini tidak mendukung Web NFC. Gunakan Google Chrome di Android.' }
+      return {
+        ok: false,
+        reason: 'Browser ini tidak mendukung Web NFC. Gunakan Google Chrome di Android.',
+      }
     }
     try {
       const parsed = new URL(url)
-      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported URL protocol')
+      if (!['http:', 'https:'].includes(parsed.protocol))
+        throw new Error('Unsupported URL protocol')
     } catch {
-      return { ok: false, reason: 'Alamat kartu tidak valid. Periksa alamat situs sebelum menulis kartu.' }
+      return {
+        ok: false,
+        reason: 'Alamat kartu tidak valid. Periksa alamat situs sebelum menulis kartu.',
+      }
     }
 
     controller = new AbortController()
     let stage: 'write' | 'lock' = 'write'
     try {
       const reader = new (window as unknown as { NDEFReader: new () => NdefWriter }).NDEFReader()
-      await reader.write({ records: [{ recordType: 'url', data: url }] }, { signal: controller.signal })
+      await reader.write(
+        { records: [{ recordType: 'url', data: url }] },
+        { signal: controller.signal },
+      )
       if (lock) {
         stage = 'lock'
         onLocking?.()
@@ -56,6 +73,9 @@ export function useWebNfc() {
   function cancel() {
     controller?.abort()
   }
+  // Leaving the screen (even by an in-app link) must disarm a pending write, or the next card held to
+  // the phone on another screen would silently get this address.
+  if (getCurrentScope()) onScopeDispose(cancel)
 
   return { supported, secureContext, writeUrl, cancel }
 }

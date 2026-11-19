@@ -31,9 +31,12 @@ function confirm() {
         <AlertDialogCancel class="h-11">Batal</AlertDialogCancel>
         <!-- Not AlertDialogAction: it closes before its click handler runs, and callers that clear their
              pending item on close would then confirm nothing. Confirm first, then close. -->
-        <Button :class="['h-11', destructive && 'bg-destructive text-white hover:bg-destructive/90']" @click="confirm">{{
-          confirmLabel
-        }}</Button>
+        <Button
+          :class="['h-11', destructive && 'bg-destructive text-white hover:bg-destructive/90']"
+          @click="confirm"
+        >
+          {{ confirmLabel }}
+        </Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

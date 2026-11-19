@@ -23,7 +23,10 @@ const CELLS = [
 ]
 const pos = (i: number) => ({ left: 190 + (i % 3) * 560, top: 300 + Math.floor(i / 3) * 375 })
 
-const { data: view } = useFetch<PublicView>('/api/public/k/K7Q2M9XA', { key: 'video-public', server: false })
+const { data: view } = useFetch<PublicView>('/api/public/k/K7Q2M9XA', {
+  key: 'video-public',
+  server: false,
+})
 
 const root = ref<HTMLElement>()
 const q = (s: string) => root.value!.querySelector(s) as HTMLElement
@@ -35,7 +38,12 @@ defineExpose<VideoScene & { ready: () => Promise<void> }>({
     // the heading is already in place at the cut, so the scene never opens on an empty frame
     tl.fromTo(q('.vfe-cam'), { scale: 1 }, { scale: 1.03, duration: 10, ease: 'none' }, at)
     qa('.vfe-cell').forEach((c, i) => {
-      tl.fromTo(c, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE.in }, at + 0.05 + i * 0.15)
+      tl.fromTo(
+        c,
+        { autoAlpha: 0, y: 50 },
+        { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE.in },
+        at + 0.05 + i * 0.15,
+      )
       tl.fromTo(
         c,
         { y: 0 },
@@ -45,10 +53,20 @@ defineExpose<VideoScene & { ready: () => Promise<void> }>({
     })
     // spotlight visits each screen; its label lights up with it
     const spot = q('.vfe-spot')
-    const box = (i: number) => ({ left: pos(i).left - 16, top: pos(i).top - 16, width: CW + 32, height: CH + 32 + 52 })
+    const box = (i: number) => ({
+      left: pos(i).left - 16,
+      top: pos(i).top - 16,
+      width: CW + 32,
+      height: CH + 32 + 52,
+    })
     const t0 = at + 2.2
     const dwell = 1.2
-    tl.fromTo(spot, { ...box(0), autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: EASE.in }, t0 - 0.2)
+    tl.fromTo(
+      spot,
+      { ...box(0), autoAlpha: 0 },
+      { autoAlpha: 1, duration: 0.4, ease: EASE.in },
+      t0 - 0.2,
+    )
     qa('.vfe-label').forEach((l, i) => {
       if (i > 0) tl.to(spot, { ...box(i), duration: 0.45, ease: EASE.move }, t0 + i * dwell - 0.3)
       tl.fromTo(l, { color: '#5b6577' }, { color: '#2F318B', duration: 0.3 }, t0 + i * dwell - 0.1)
@@ -61,22 +79,43 @@ defineExpose<VideoScene & { ready: () => Promise<void> }>({
 <template>
   <div ref="root" class="video-bg">
     <div class="vfe-cam absolute inset-0" style="transform-origin: 960px 640px">
-      <div v-for="(c, i) in CELLS" :key="c.label" class="vfe-cell absolute" :style="{ left: pos(i).left + 'px', top: pos(i).top + 'px' }">
+      <div
+        v-for="(c, i) in CELLS"
+        :key="c.label"
+        class="vfe-cell absolute"
+        :style="{ left: pos(i).left + 'px', top: pos(i).top + 'px' }"
+      >
         <div class="relative" :style="{ width: CW + 'px', height: CH + 'px' }">
-          <div v-if="c.page" class="absolute left-0 top-0 origin-top-left" :style="{ transform: `scale(${S})` }">
-            <VideoWindow class="left-0 top-0" :title="c.title"><component :is="c.page" /></VideoWindow>
+          <div
+            v-if="c.page"
+            class="absolute top-0 left-0 origin-top-left"
+            :style="{ transform: `scale(${S})` }"
+          >
+            <VideoWindow class="top-0 left-0" :title="c.title">
+              <component :is="c.page" />
+            </VideoWindow>
           </div>
-          <div v-else class="absolute left-[160px] top-[-10px] origin-top-left" :style="{ transform: 'scale(0.42)' }">
-            <AdminPhoneFrame><PosterView v-if="view" :view="view" preview class="min-h-full" /></AdminPhoneFrame>
+          <div
+            v-else
+            class="absolute top-[-10px] left-[160px] origin-top-left"
+            :style="{ transform: 'scale(0.42)' }"
+          >
+            <AdminPhoneFrame>
+              <PosterView v-if="view" :view="view" preview class="min-h-full" />
+            </AdminPhoneFrame>
           </div>
         </div>
-        <div class="vfe-label mt-3 text-center text-[26px] font-black text-[#5b6577]">{{ c.label }}</div>
+        <div class="vfe-label mt-3 text-center text-[26px] font-black text-[#5b6577]">
+          {{ c.label }}
+        </div>
       </div>
       <div class="vfe-spot video-spot" />
     </div>
-    <div class="absolute left-[150px] top-[110px]">
+    <div class="absolute top-[110px] left-[150px]">
       <div class="vfe-k video-kicker">Fitur lainnya</div>
-      <h2 class="vfe-title m-0 mt-3 text-[80px] leading-none font-black tracking-[-0.02em] text-[#1F2937]">
+      <h2
+        class="vfe-title m-0 mt-3 text-[80px] leading-none font-black tracking-[-0.02em] text-[#1F2937]"
+      >
         Semua yang dibutuhkan tim Marketing
       </h2>
     </div>

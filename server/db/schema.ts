@@ -18,12 +18,12 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import type { PosterDesign } from '#shared/design'
-import type { ContactButton, Settings } from '#shared/types'
+import type { ContactButton, PendingChange, Settings } from '#shared/types'
 
 const ts = (name: string) => timestamp(name, { withTimezone: true })
 const createdAt = () => ts('created_at').notNull().defaultNow()
 
-export const roleEnum = pgEnum('role', ['super', 'staff'])
+export const roleEnum = pgEnum('role', ['super', 'staff', 'marketing', 'approver'])
 export const userStatusEnum = pgEnum('user_status', ['active', 'locked', 'inactive'])
 export const posterKindEnum = pgEnum('poster_kind', ['gambar', 'pengumuman'])
 export const publishStatusEnum = pgEnum('publish_status', ['draft', 'published'])
@@ -47,9 +47,15 @@ export const users = pgTable(
     lastLogin: ts('last_login'),
     lockedUntil: ts('locked_until'),
     mustChangePassword: boolean('must_change_password').notNull().default(false),
+    /** Marketing contact: the WhatsApp (62…) and phone that owned posters' buttons open. */
+    wa: text('wa'),
+    phone: text('phone'),
     createdAt: createdAt(),
   },
-  t => [uniqueIndex('users_email_key').on(t.email), check('users_email_lower', sql`${t.email} = lower(${t.email})`)],
+  t => [
+    uniqueIndex('users_email_key').on(t.email),
+    check('users_email_lower', sql`${t.email} = lower(${t.email})`),
+  ],
 )
 
 /** Password hashes, apart from `users` so no query for user data can return them by accident. */
@@ -93,6 +99,8 @@ export const posters = pgTable(
     end: date('end_date', { mode: 'string' }).notNull(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
     updatedBy: text('updated_by').references(() => users.id, { onDelete: 'set null' }),
+    /** Marketing user in charge of this poster (analytics per marketing user). */
+    ownerId: text('owner_id').references(() => users.id, { onDelete: 'set null' }),
     // kind = 'gambar'
     imageUrl: text('image_url'),
     imageFile: text('image_file'),
@@ -109,6 +117,17 @@ export const posters = pgTable(
     brochureUrl: text('brochure_url'),
     brochureFile: text('brochure_file'),
     design: jsonb('design').$type<PosterDesign>(),
+    /**
+     * A change Staff or Marketing submitted for approval (fields and pages). The live columns above stay
+     * as they are, so visitors keep seeing the approved version until an Approver accepts it.
+     */
+    pending: jsonb('pending').$type<PendingChange>(),
+    pendingBy: text('pending_by').references(() => users.id, { onDelete: 'set null' }),
+    pendingAt: ts('pending_at'),
+    /** Why the last submission was turned down; cleared by the next submission or an approval. */
+    rejectNote: text('reject_note'),
+    rejectedBy: text('rejected_by').references(() => users.id, { onDelete: 'set null' }),
+    rejectedAt: ts('rejected_at'),
     // kind = 'pengumuman'
     text: text('text'),
     level: announcementLevelEnum('level'),
@@ -118,6 +137,11 @@ export const posters = pgTable(
     check('posters_dates', sql`${t.end} >= ${t.start}`),
     // What's live is found by status, archive flag and date window.
     index('posters_live_idx').on(t.status, t.archived, t.start, t.end),
+    index('posters_owner_idx').on(t.ownerId),
+    // The approval list only reads rows with a pending change.
+    index('posters_pending_idx')
+      .on(t.pendingAt)
+      .where(sql`${t.pending} is not null`),
   ],
 )
 
@@ -129,6 +153,8 @@ export const pages = pgTable(
     theme: themeEnum('theme').notNull().default('ungu'),
     status: publishStatusEnum('status').notNull().default('draft'),
     isDefault: boolean('is_default').notNull().default(false),
+    /** Marketing user in charge of this page. */
+    ownerId: text('owner_id').references(() => users.id, { onDelete: 'set null' }),
     updatedAt: ts('updated_at').notNull().defaultNow(),
     createdAt: createdAt(),
   },
@@ -154,7 +180,10 @@ export const pagePosters = pgTable(
       .references(() => posters.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
   },
-  t => [primaryKey({ columns: [t.pageId, t.posterId] }), index('page_posters_poster_idx').on(t.posterId)],
+  t => [
+    primaryKey({ columns: [t.pageId, t.posterId] }),
+    index('page_posters_poster_idx').on(t.posterId),
+  ],
 )
 
 // ---- NFC cards and visits ---------------------------------------------------------------
@@ -172,9 +201,15 @@ export const cards = pgTable(
     writtenBy: text('written_by').references(() => users.id, { onDelete: 'set null' }),
     locked: boolean('locked').notNull().default(false),
     lastTap: ts('last_tap'),
+    /** Marketing user this card belongs to; their taps count towards them in analytics. */
+    ownerId: text('owner_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: createdAt(),
   },
-  t => [check('cards_code_format', sql`${t.code} ~ '^[A-Z0-9]{8}$'`), index('cards_page_idx').on(t.pageId)],
+  t => [
+    check('cards_code_format', sql`${t.code} ~ '^[A-Z0-9]{8}$'`),
+    index('cards_page_idx').on(t.pageId),
+    index('cards_owner_idx').on(t.ownerId),
+  ],
 )
 
 /** Taps and contact-button clicks per card per day (no personal data). */

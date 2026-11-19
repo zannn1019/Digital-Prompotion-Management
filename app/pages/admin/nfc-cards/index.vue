@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ellipsis, Nfc, Plus, Power, PowerOff, QrCode } from '@lucide/vue'
+import { Ellipsis, Nfc, Plus, Power, PowerOff, QrCode, UserRound } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,7 +10,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { CardRow } from '~/composables/useCards'
 import type { Page } from '#shared/types'
 import { WRITE_STATUS } from '#shared/constants'
@@ -19,28 +26,45 @@ import { fmtDate, fmtDateTime } from '#shared/utils/format'
 definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Kartu NFC' })
 
 const { isSuper } = useSession()
-const { cards, status, refresh, bulk } = useCards()
+const { cards, status, refresh, bulk, assignOwner } = useCards()
+const { marketers } = useMarketingUsers()
 const { data: pages } = useFetch<Page[]>('/api/pages', { server: false })
 
 // ---- Filters -------------------------------------------------------------
 const q = ref('')
 const fStatus = ref('')
 const fGroup = ref('')
+const fOwner = ref('')
 const groups = computed(() => [...new Set((cards.value ?? []).map(c => c.group))])
 const rows = computed(() =>
   (cards.value ?? []).filter(
     c =>
       (!q.value || `${c.code} ${c.label}`.toLowerCase().includes(q.value.toLowerCase())) &&
       (!fGroup.value || c.group === fGroup.value) &&
+      ownerMatches(c.ownerId, fOwner.value) &&
       (!fStatus.value ||
-        (fStatus.value === 'unmapped' ? !c.pageId : fStatus.value === 'belum' ? c.writeStatus !== 'sudah' : c.status === fStatus.value)),
+        (fStatus.value === 'unmapped'
+          ? !c.pageId
+          : fStatus.value === 'belum'
+            ? c.writeStatus !== 'sudah'
+            : c.status === fStatus.value)),
   ),
 )
 const unwritten = computed(() => (cards.value ?? []).filter(c => c.writeStatus !== 'sudah').length)
 
 // ---- Selection -----------------------------------------------------------
 const selected = ref<string[]>([])
-const allChecked = computed(() => rows.value.length > 0 && rows.value.every(r => selected.value.includes(r.code)))
+const allChecked = computed(
+  () => rows.value.length > 0 && rows.value.every(r => selected.value.includes(r.code)),
+)
+// Filtering hides cards: drop them from the selection, so a bulk action never touches cards the user
+// can no longer see.
+watch(rows, list => {
+  const visible = new Set(list.map(r => r.code))
+  if (selected.value.some(c => !visible.has(c)))
+    selected.value = selected.value.filter(c => visible.has(c))
+})
+const someChecked = computed(() => selected.value.length > 0 && !allChecked.value)
 function toggleAll() {
   selected.value = allChecked.value ? [] : rows.value.map(r => r.code)
 }
@@ -70,6 +94,20 @@ async function doDeactivate() {
   if (await bulk('deactivate', deactCodes.value)) selected.value = []
 }
 
+const ownerCodes = ref<string[]>([])
+const ownerOpen = ref(false)
+const ownerInitial = ref<string | null>(null)
+function openOwner(codes: string[], current: string | null = null) {
+  ownerCodes.value = codes
+  ownerInitial.value = current
+  ownerOpen.value = true
+}
+async function doOwner(ownerId: string | null) {
+  const name = marketers.value.find(m => m.id === ownerId)?.name
+  if (await assignOwner(ownerCodes.value, ownerId, name)) selected.value = []
+  ownerOpen.value = false
+}
+
 const registerOpen = ref(false)
 const qrCard = ref<CardRow | null>(null)
 const qrOpen = computed({
@@ -81,8 +119,17 @@ const qrOpen = computed({
 
 function exportCsv() {
   downloadCsv('kartu-nfc.csv', [
-    ['kode', 'label', 'kelompok', 'halaman', 'status', 'status_tulis', 'alamat'],
-    ...(cards.value ?? []).map(c => [c.code, c.label, c.group, c.pageName ?? '', c.status, c.writeStatus, c.url]),
+    ['kode', 'label', 'kelompok', 'halaman', 'marketing', 'status', 'status_tulis', 'alamat'],
+    ...(cards.value ?? []).map(c => [
+      c.code,
+      c.label,
+      c.group,
+      c.pageName ?? '',
+      c.ownerName ?? '',
+      c.status,
+      c.writeStatus,
+      c.url,
+    ]),
   ])
 }
 </script>
@@ -93,19 +140,27 @@ function exportCsv() {
       title="Kartu NFC"
       description="Setiap kartu menyimpan satu alamat unik. Tentukan halaman yang muncul saat kartu diketuk."
     >
-      <Button variant="outline" class="h-11" :disabled="!cards?.length" @click="exportCsv">Ekspor CSV</Button>
-      <Button as-child variant="outline" class="h-11">
-        <NuxtLink to="/admin/nfc-cards/write"
-          ><Nfc class="size-4" />Tulis ke kartu
-          <span class="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{{ unwritten }}</span></NuxtLink
-        >
+      <Button variant="outline" class="h-11" :disabled="!cards?.length" @click="exportCsv">
+        Ekspor CSV
       </Button>
-      <Button v-if="isSuper" class="h-11" @click="registerOpen = true"><Plus class="size-4" />Daftarkan kartu</Button>
+      <Button as-child variant="outline" class="h-11">
+        <NuxtLink to="/admin/nfc-cards/write">
+          <Nfc class="size-4" />
+          Tulis ke kartu
+          <span class="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+            {{ unwritten }}
+          </span>
+        </NuxtLink>
+      </Button>
+      <Button v-if="isSuper" class="h-11" @click="registerOpen = true">
+        <Plus class="size-4" />
+        Daftarkan kartu
+      </Button>
     </AdminPageHeader>
 
     <p v-if="!isSuper" class="mb-4 rounded-lg border bg-secondary px-4 py-3 text-sm text-zinc-700">
-      Anda dapat melihat kartu, memetakan kartu ke halaman, menulis kartu, dan membuka QR cadangan. Pendaftaran dan penonaktifan kartu
-      dilakukan Super Admin.
+      Anda dapat melihat kartu, memetakan kartu ke halaman, menulis kartu, dan membuka QR cadangan.
+      Pendaftaran, pemilik (marketing), dan penonaktifan kartu diatur Super Admin.
     </p>
 
     <div class="mb-4 flex flex-wrap gap-3">
@@ -127,6 +182,11 @@ function exportCsv() {
         <option value="">Semua kelompok</option>
         <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
       </AdminNativeSelect>
+      <AdminNativeSelect v-model="fOwner" aria-label="Marketing">
+        <option value="">Semua marketing</option>
+        <option v-for="m in marketers" :key="m.id" :value="m.id">{{ m.name }}</option>
+        <option value="none">Belum ada marketing</option>
+      </AdminNativeSelect>
     </div>
 
     <div
@@ -140,13 +200,34 @@ function exportCsv() {
         variant="outline"
         class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
         @click="openMap([...selected])"
-        >Petakan ke halaman…</Button
       >
-      <Button as-child variant="outline" class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
-        ><NuxtLink to="/admin/nfc-cards/write">Tulis ke kartu</NuxtLink></Button
+        Petakan ke halaman…
+      </Button>
+      <Button
+        as-child
+        variant="outline"
+        class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
       >
-      <Button v-if="isSuper" variant="destructive" class="h-10" @click="askDeactivate()">Nonaktifkan</Button>
-      <Button variant="ghost" class="h-10 text-zinc-300 hover:bg-white/10 hover:text-white" @click="selected = []">Batalkan pilihan</Button>
+        <NuxtLink to="/admin/nfc-cards/write">Tulis ke kartu</NuxtLink>
+      </Button>
+      <Button
+        v-if="isSuper"
+        variant="outline"
+        class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
+        @click="openOwner([...selected])"
+      >
+        Atur marketing…
+      </Button>
+      <Button v-if="isSuper" variant="destructive" class="h-10" @click="askDeactivate()">
+        Nonaktifkan
+      </Button>
+      <Button
+        variant="ghost"
+        class="h-10 text-zinc-300 hover:bg-white/10 hover:text-white"
+        @click="selected = []"
+      >
+        Batalkan pilihan
+      </Button>
     </div>
 
     <Card class="overflow-hidden py-0">
@@ -155,46 +236,190 @@ function exportCsv() {
         :empty="!rows.length"
         :empty-icon="Nfc"
         empty-title="Tidak ada kartu"
-        :empty-description="cards?.length ? 'Coba kata kunci lain atau hapus filter.' : 'Daftarkan kartu NFC pertama Anda.'"
+        :empty-description="
+          cards?.length
+            ? 'Coba kata kunci lain atau hapus filter.'
+            : 'Daftarkan kartu NFC pertama Anda.'
+        "
         @retry="refresh()"
       >
-        <Table class="min-w-[860px]">
+        <!-- Phone: one card per NFC card, so status and actions stay on screen without sideways scrolling. -->
+        <div class="flex items-center gap-3 border-b px-4 py-2 md:hidden">
+          <label class="flex min-h-11 items-center gap-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              class="size-5 accent-primary"
+              :checked="allChecked"
+              :indeterminate="someChecked"
+              @change="toggleAll"
+            />
+            Pilih semua ({{ rows.length }})
+          </label>
+        </div>
+        <ul class="divide-y md:hidden">
+          <li v-for="c in rows" :key="c.code" class="flex gap-3 p-4">
+            <label class="flex min-h-11 min-w-11 shrink-0 items-start justify-center pt-0.5">
+              <input
+                v-model="selected"
+                type="checkbox"
+                :value="c.code"
+                class="size-5 accent-primary"
+                :aria-label="`Pilih kartu ${c.code}`"
+              />
+            </label>
+            <div class="flex min-w-0 grow flex-col gap-1">
+              <div class="flex items-start gap-2">
+                <b class="min-w-0 grow leading-snug font-semibold">{{ c.label }}</b>
+                <AdminStatusPill
+                  class="shrink-0"
+                  :tone="c.status === 'nonaktif' ? 'danger' : !c.pageId ? 'warning' : 'success'"
+                >
+                  {{
+                    c.status === 'nonaktif' ? 'Nonaktif' : !c.pageId ? 'Belum dipetakan' : 'Aktif'
+                  }}
+                </AdminStatusPill>
+              </div>
+              <span class="font-mono text-[13px] tracking-wide text-muted-foreground">
+                {{ c.code }} · {{ c.group }}
+              </span>
+              <span class="text-[13px] text-muted-foreground">
+                Halaman: {{ c.pageName ?? 'Halaman umum (default)' }}
+              </span>
+              <span class="text-[13px] text-muted-foreground">
+                Marketing: {{ c.ownerName ?? 'Belum ada' }}
+              </span>
+              <span
+                :class="[
+                  'text-[13px]',
+                  c.writeStatus === 'gagal'
+                    ? 'font-semibold text-destructive'
+                    : 'text-muted-foreground',
+                ]"
+              >
+                {{ WRITE_STATUS[c.writeStatus].label }} · Tap terakhir:
+                {{ c.lastTap ? fmtDateTime(c.lastTap) : 'belum pernah' }}
+              </span>
+              <div class="mt-1 flex gap-1.5">
+                <Button variant="outline" class="h-11" @click="openMap([c.code], c.pageId)">
+                  Petakan
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="size-11"
+                      :aria-label="`Aksi lain untuk kartu ${c.code}`"
+                    >
+                      <Ellipsis class="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" class="w-52">
+                    <DropdownMenuItem as-child class="min-h-11">
+                      <NuxtLink to="/admin/nfc-cards/write">
+                        <Nfc class="size-4" />
+                        Tulis ke kartu
+                      </NuxtLink>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem class="min-h-11" @select="qrCard = c">
+                      <QrCode class="size-4" />
+                      QR cadangan
+                    </DropdownMenuItem>
+                    <template v-if="isSuper">
+                      <DropdownMenuItem class="min-h-11" @select="openOwner([c.code], c.ownerId)">
+                        <UserRound class="size-4" />
+                        Atur marketing
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        v-if="c.status === 'nonaktif'"
+                        class="min-h-11"
+                        @select="bulk('activate', [c.code])"
+                      >
+                        <Power class="size-4" />
+                        Aktifkan
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        v-else
+                        class="min-h-11 text-destructive focus:text-destructive"
+                        @select="askDeactivate([c.code])"
+                      >
+                        <PowerOff class="size-4" />
+                        Nonaktifkan
+                      </DropdownMenuItem>
+                    </template>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <Table class="hidden min-w-[960px] md:table" label="Daftar kartu NFC">
           <TableHeader>
             <TableRow>
-              <TableHead class="w-12 pl-4"
-                ><input
+              <TableHead class="w-12 pl-4">
+                <input
                   type="checkbox"
                   class="size-[18px] accent-primary"
                   :checked="allChecked"
+                  :indeterminate="someChecked"
                   aria-label="Pilih semua kartu"
                   @change="toggleAll"
-              /></TableHead>
-              <TableHead>Kode kartu</TableHead><TableHead>Lokasi / label</TableHead><TableHead>Halaman tujuan</TableHead>
-              <TableHead>Status</TableHead><TableHead>Tap terakhir</TableHead><TableHead class="pr-4 text-right">Aksi</TableHead>
+                />
+              </TableHead>
+              <TableHead>Kode kartu</TableHead>
+              <TableHead>Lokasi / label</TableHead>
+              <TableHead>Halaman tujuan</TableHead>
+              <TableHead>Marketing</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Tap terakhir</TableHead>
+              <TableHead class="pr-4 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="c in rows" :key="c.code" :data-state="selected.includes(c.code) ? 'selected' : undefined">
-              <TableCell class="pl-4"
-                ><label class="flex h-11 w-8 items-center"
-                  ><input
+            <TableRow
+              v-for="c in rows"
+              :key="c.code"
+              :data-state="selected.includes(c.code) ? 'selected' : undefined"
+            >
+              <TableCell class="pl-4">
+                <label class="flex h-11 w-8 items-center">
+                  <input
                     v-model="selected"
                     type="checkbox"
                     :value="c.code"
                     class="size-[18px] accent-primary"
-                    :aria-label="`Pilih kartu ${c.code}`" /></label
-              ></TableCell>
+                    :aria-label="`Pilih kartu ${c.code}`"
+                  />
+                </label>
+              </TableCell>
               <TableCell class="font-mono text-[13px] tracking-wide">{{ c.code }}</TableCell>
-              <TableCell
-                >{{ c.label }}
-                <div class="text-xs text-muted-foreground">{{ c.group }}</div></TableCell
-              >
-              <TableCell :class="!c.pageName && 'text-muted-foreground italic'">{{ c.pageName ?? 'Halaman umum (default)' }}</TableCell>
               <TableCell>
-                <AdminStatusPill :tone="c.status === 'nonaktif' ? 'danger' : !c.pageId ? 'warning' : 'success'">{{
-                  c.status === 'nonaktif' ? 'Nonaktif' : !c.pageId ? 'Belum dipetakan' : 'Aktif'
-                }}</AdminStatusPill>
-                <div :class="['mt-1 text-xs', c.writeStatus === 'gagal' ? 'font-semibold text-destructive' : 'text-muted-foreground']">
+                {{ c.label }}
+                <div class="text-xs text-muted-foreground">{{ c.group }}</div>
+              </TableCell>
+              <TableCell :class="!c.pageName && 'text-muted-foreground italic'">
+                {{ c.pageName ?? 'Halaman umum (default)' }}
+              </TableCell>
+              <TableCell :class="!c.ownerName && 'text-muted-foreground italic'">
+                {{ c.ownerName ?? 'Belum ada' }}
+              </TableCell>
+              <TableCell>
+                <AdminStatusPill
+                  :tone="c.status === 'nonaktif' ? 'danger' : !c.pageId ? 'warning' : 'success'"
+                >
+                  {{
+                    c.status === 'nonaktif' ? 'Nonaktif' : !c.pageId ? 'Belum dipetakan' : 'Aktif'
+                  }}
+                </AdminStatusPill>
+                <div
+                  :class="[
+                    'mt-1 text-xs',
+                    c.writeStatus === 'gagal'
+                      ? 'font-semibold text-destructive'
+                      : 'text-muted-foreground',
+                  ]"
+                >
                   {{ WRITE_STATUS[c.writeStatus].label }} ·
                   {{
                     c.writtenAt
@@ -208,32 +433,67 @@ function exportCsv() {
                   v-if="c.writeStatus !== 'sudah'"
                   to="/admin/nfc-cards/write"
                   class="inline-flex min-h-7 items-center text-xs font-semibold text-primary underline-offset-4 hover:underline"
-                  >Tulis ke kartu</NuxtLink
                 >
+                  Tulis ke kartu
+                </NuxtLink>
               </TableCell>
-              <TableCell class="text-[13px] text-muted-foreground">{{ c.lastTap ? fmtDateTime(c.lastTap) : 'Belum pernah' }}</TableCell>
+              <TableCell class="text-[13px] text-muted-foreground">
+                {{ c.lastTap ? fmtDateTime(c.lastTap) : 'Belum pernah' }}
+              </TableCell>
               <TableCell class="pr-4">
                 <div class="flex justify-end gap-1">
-                  <Button variant="outline" size="sm" class="h-9" @click="openMap([c.code], c.pageId)">Petakan</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    class="h-9"
+                    @click="openMap([c.code], c.pageId)"
+                  >
+                    Petakan
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="icon" class="size-9" :aria-label="`Aksi lain untuk kartu ${c.code}`"
-                        ><Ellipsis class="size-4"
-                      /></Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-9"
+                        :aria-label="`Aksi lain untuk kartu ${c.code}`"
+                      >
+                        <Ellipsis class="size-4" />
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-52">
-                      <DropdownMenuItem as-child class="min-h-11"
-                        ><NuxtLink to="/admin/nfc-cards/write"><Nfc class="size-4" />Tulis ke kartu</NuxtLink></DropdownMenuItem
-                      >
-                      <DropdownMenuItem class="min-h-11" @select="qrCard = c"><QrCode class="size-4" />QR cadangan</DropdownMenuItem>
+                      <DropdownMenuItem as-child class="min-h-11">
+                        <NuxtLink to="/admin/nfc-cards/write">
+                          <Nfc class="size-4" />
+                          Tulis ke kartu
+                        </NuxtLink>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem class="min-h-11" @select="qrCard = c">
+                        <QrCode class="size-4" />
+                        QR cadangan
+                      </DropdownMenuItem>
                       <template v-if="isSuper">
+                        <DropdownMenuItem class="min-h-11" @select="openOwner([c.code], c.ownerId)">
+                          <UserRound class="size-4" />
+                          Atur marketing
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem v-if="c.status === 'nonaktif'" class="min-h-11" @select="bulk('activate', [c.code])"
-                          ><Power class="size-4" />Aktifkan</DropdownMenuItem
+                        <DropdownMenuItem
+                          v-if="c.status === 'nonaktif'"
+                          class="min-h-11"
+                          @select="bulk('activate', [c.code])"
                         >
-                        <DropdownMenuItem v-else class="min-h-11 text-destructive focus:text-destructive" @select="askDeactivate([c.code])"
-                          ><PowerOff class="size-4" />Nonaktifkan</DropdownMenuItem
+                          <Power class="size-4" />
+                          Aktifkan
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          v-else
+                          class="min-h-11 text-destructive focus:text-destructive"
+                          @select="askDeactivate([c.code])"
                         >
+                          <PowerOff class="size-4" />
+                          Nonaktifkan
+                        </DropdownMenuItem>
                       </template>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -244,9 +504,23 @@ function exportCsv() {
         </Table>
       </AdminDataState>
     </Card>
-    <p class="mt-3 text-[13px] text-muted-foreground">Kartu “Belum ditulis” masih kosong dan belum bisa diketuk.</p>
+    <p class="mt-3 text-[13px] text-muted-foreground">
+      Kartu “Belum ditulis” masih kosong dan belum bisa diketuk.
+    </p>
 
-    <CardMapDialog v-model:open="mapOpen" :count="mapCodes.length" :pages="pages ?? []" :initial-page-id="mapInitial" @confirm="doMap" />
+    <CardMapDialog
+      v-model:open="mapOpen"
+      :count="mapCodes.length"
+      :pages="pages ?? []"
+      :initial-page-id="mapInitial"
+      @confirm="doMap"
+    />
+    <CardOwnerDialog
+      v-model:open="ownerOpen"
+      :count="ownerCodes.length"
+      :initial-owner-id="ownerInitial"
+      @confirm="doOwner"
+    />
     <AdminConfirmDialog
       v-model:open="deactOpen"
       destructive
@@ -255,7 +529,12 @@ function exportCsv() {
       description="Gunakan ini untuk kartu yang hilang atau rusak. Siapa pun yang mengetuk kartu ini akan melihat halaman umum, bukan poster. Data tap lama tetap tersimpan, dan Anda bisa mengaktifkannya lagi kapan saja."
       @confirm="doDeactivate"
     />
-    <CardRegisterDialog v-model:open="registerOpen" :pages="pages ?? []" :groups="groups" @registered="refresh()" />
+    <CardRegisterDialog
+      v-model:open="registerOpen"
+      :pages="pages ?? []"
+      :groups="groups"
+      @registered="refresh()"
+    />
     <CardQrDialog v-if="qrCard" v-model:open="qrOpen" :code="qrCard.code" :url="qrCard.url" />
   </div>
 </template>

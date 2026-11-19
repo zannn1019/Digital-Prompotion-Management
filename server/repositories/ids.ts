@@ -7,4 +7,5 @@ export const newId = (prefix: string) => `${prefix}${randomBytes(6).toString('he
 export const isUniqueViolation = (e: unknown) =>
   !!e &&
   typeof e === 'object' &&
-  ((e as { code?: string }).code === '23505' || (e as { cause?: { code?: string } }).cause?.code === '23505')
+  ((e as { code?: string }).code === '23505' ||
+    (e as { cause?: { code?: string } }).cause?.code === '23505')
