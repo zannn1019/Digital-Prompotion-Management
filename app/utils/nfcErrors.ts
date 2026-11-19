@@ -9,7 +9,10 @@ export interface NfcErrorInfo {
 
 export function nfcErrorInfo(error: unknown): NfcErrorInfo {
   if (error && typeof error === 'object' && 'name' in error)
-    return { name: String((error as { name: unknown }).name), message: String((error as { message?: unknown }).message ?? '') }
+    return {
+      name: String((error as { name: unknown }).name),
+      message: String((error as { message?: unknown }).message ?? ''),
+    }
   return { name: 'Error', message: String(error) }
 }
 

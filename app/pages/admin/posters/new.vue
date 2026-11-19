@@ -11,7 +11,10 @@ const OPTIONS = [
     icon: ImageUp,
     title: 'Unggah poster jadi',
     text: 'Sudah punya poster dari aplikasi desain apa pun? Unggah file PNG, JPG, WebP, atau PDF di sini.',
-    points: ['Paling cepat bila poster sudah ada', 'Tombol WhatsApp dan telepon ditambahkan di bawahnya'],
+    points: [
+      'Paling cepat bila poster sudah ada',
+      'Tombol WhatsApp dan telepon ditambahkan di bawahnya',
+    ],
     cta: 'Unggah poster',
     primary: true,
   },
@@ -44,7 +47,12 @@ const OPTIONS = [
           o.primary ? 'border-[3px] border-zinc-900' : 'border-2',
         ]"
       >
-        <span :class="['flex size-16 items-center justify-center rounded-2xl', o.primary ? 'bg-zinc-900 text-white' : 'bg-muted']">
+        <span
+          :class="[
+            'flex size-16 items-center justify-center rounded-2xl',
+            o.primary ? 'bg-zinc-900 text-white' : 'bg-muted',
+          ]"
+        >
           <component :is="o.icon" class="size-8" aria-hidden="true" />
         </span>
         <h2 class="text-2xl font-bold">{{ o.title }}</h2>
@@ -58,7 +66,8 @@ const OPTIONS = [
             o.primary ? 'bg-zinc-900 text-white' : 'border-2 border-zinc-900',
           ]"
         >
-          {{ o.cta }}<ArrowRight class="size-5" aria-hidden="true" />
+          {{ o.cta }}
+          <ArrowRight class="size-5" aria-hidden="true" />
         </span>
       </NuxtLink>
     </div>

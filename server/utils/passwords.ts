@@ -12,12 +12,20 @@ export const DEMO_PASSWORD = 'demo123'
 export const MIN_PASSWORD_LENGTH = 10
 
 /**
- * Password for the seeded accounts. Data lives in memory, so this is what every seeded account
- * goes back to on each restart: on a reachable server set NUXT_SEED_PASSWORD so it isn't the public demo one.
+ * Password of the first Super Admin, used only when the database is still empty.
+ * Local development falls back to the public demo password. A production build has no fallback:
+ * without NUXT_SEED_PASSWORD it refuses to start, so a server can never come up with `demo123`.
  */
-export function seedPassword(fromEnv: string | undefined): string {
-  if (!fromEnv) return DEMO_PASSWORD
-  if (fromEnv.length < MIN_PASSWORD_LENGTH) throw new Error(`NUXT_SEED_PASSWORD must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+export function seedPassword(fromEnv: string | undefined, production: boolean): string {
+  if (!fromEnv) {
+    if (production)
+      throw new Error(
+        'NUXT_SEED_PASSWORD must be set (at least 10 characters) for a production build.',
+      )
+    return DEMO_PASSWORD
+  }
+  if (fromEnv.length < MIN_PASSWORD_LENGTH)
+    throw new Error(`NUXT_SEED_PASSWORD must be at least ${MIN_PASSWORD_LENGTH} characters.`)
   return fromEnv
 }
 const KEY_LENGTH = 64
@@ -28,13 +36,18 @@ export interface PasswordHash {
 }
 
 function derive(password: string, salt: Buffer): Promise<Buffer> {
-  return new Promise((resolve, reject) => scrypt(password, salt, KEY_LENGTH, (err, key) => (err ? reject(err) : resolve(key))))
+  return new Promise((resolve, reject) =>
+    scrypt(password, salt, KEY_LENGTH, (err, key) => (err ? reject(err) : resolve(key))),
+  )
 }
 
 /** Synchronous hash, only for start-up seeding (before any request is served). */
 export function hashPasswordSync(password: string): PasswordHash {
   const salt = randomBytes(16)
-  return { salt: salt.toString('base64'), hash: scryptSync(password, salt, KEY_LENGTH).toString('base64') }
+  return {
+    salt: salt.toString('base64'),
+    hash: scryptSync(password, salt, KEY_LENGTH).toString('base64'),
+  }
 }
 
 export async function hashPassword(password: string): Promise<PasswordHash> {
@@ -45,7 +58,10 @@ export async function hashPassword(password: string): Promise<PasswordHash> {
 // Checked when an email has no account, so a wrong email takes as long as a wrong password.
 const STAND_IN = hashPasswordSync(randomBytes(16).toString('hex'))
 
-export async function verifyPassword(password: string, stored: PasswordHash | undefined): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  stored: PasswordHash | undefined,
+): Promise<boolean> {
   const target = stored ?? STAND_IN
   const expected = Buffer.from(target.hash, 'base64')
   const actual = await derive(password, Buffer.from(target.salt, 'base64'))

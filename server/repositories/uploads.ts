@@ -12,13 +12,24 @@ const ID = /^f[0-9a-f]{32}$/
 
 export function uploadsRepo(db: Database, dir: string) {
   return {
-    async save(input: { data: Uint8Array; type: string; name: string; userId: string }): Promise<{ id: string }> {
+    async save(input: {
+      data: Uint8Array
+      type: string
+      name: string
+      userId: string
+    }): Promise<{ id: string }> {
       // 128 random bits: upload addresses can't be guessed or counted through.
       const id = `f${randomBytes(16).toString('hex')}`
       await mkdir(dir, { recursive: true })
       // Write the bytes first: a row without a file would be a broken link.
       await writeFile(join(dir, id), input.data, { flag: 'wx' })
-      await db.insert(uploads).values({ id, type: input.type, size: input.data.length, name: input.name, createdBy: input.userId })
+      await db.insert(uploads).values({
+        id,
+        type: input.type,
+        size: input.data.length,
+        name: input.name,
+        createdBy: input.userId,
+      })
       return { id }
     },
 

@@ -36,7 +36,12 @@ defineExpose<VideoScene>({
     const T0 = at + 0.9
     const STEP = 0.95
     qa('.vf-node').forEach((n, i) => {
-      tl.fromTo(n, { autoAlpha: 0, y: 30, scale: 0.85 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: EASE.pop }, T0 + i * STEP)
+      tl.fromTo(
+        n,
+        { autoAlpha: 0, y: 30, scale: 0.85 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: EASE.pop },
+        T0 + i * STEP,
+      )
       tl.fromTo(
         n.querySelector('.vf-halo'),
         { scale: 1, autoAlpha: 0.8 },
@@ -65,7 +70,12 @@ defineExpose<VideoScene>({
       }
       const end = at + 8
       tl.fromTo(dot, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2 }, t + 0.6)
-      tl.fromTo(o, { p: 0 }, { p: (end - t - 0.6) * 0.7, duration: end - t - 0.6, ease: 'none', onUpdate: place }, t + 0.6)
+      tl.fromTo(
+        o,
+        { p: 0 },
+        { p: (end - t - 0.6) * 0.7, duration: end - t - 0.6, ease: 'none', onUpdate: place },
+        t + 0.6,
+      )
     })
   },
 })
@@ -75,11 +85,22 @@ defineExpose<VideoScene>({
   <div ref="root" class="video-bg">
     <div class="absolute inset-x-0 top-[150px] flex flex-col items-center text-center">
       <div class="vf-k video-kicker">Alur kerja</div>
-      <h2 class="vf-title m-0 mt-3 text-[88px] leading-none font-black tracking-[-0.02em] text-[#1F2937]">Dari unggah sampai hasil</h2>
+      <h2
+        class="vf-title m-0 mt-3 text-[88px] leading-none font-black tracking-[-0.02em] text-[#1F2937]"
+      >
+        Dari unggah sampai hasil
+      </h2>
     </div>
     <div class="vf-cam absolute inset-0" style="transform-origin: 960px 600px">
       <svg class="absolute inset-0" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
-        <g v-for="(l, i) in links" :key="i" stroke="#1d6fa5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <g
+          v-for="(l, i) in links"
+          :key="i"
+          stroke="#1d6fa5"
+          stroke-width="4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <path class="vf-line" :d="l.d" />
           <path class="vf-head" :d="l.head" />
         </g>

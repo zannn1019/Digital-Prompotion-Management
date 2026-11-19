@@ -28,23 +28,32 @@ export default defineEventHandler(async event => {
     else {
       page = mapped
       // Count the tap once per visitor and card within 30 s; prefetches don't count, preview bots go to `bots`.
-      const visit = classifyVisit(event, `tap|${card.code}`)
+      // Opening another poster of the page (`?p=`, from "Info lainnya") is browsing, not a new tap.
+      const browsing = typeof getQuery(event).p === 'string'
+      const visit = browsing ? null : classifyVisit(event, `tap|${card.code}`)
       if (visit === 'count' || visit === 'bot') await cardsRepo.countTap(day, card.code, page.id, visit === 'count' ? 'tap' : 'bot')
     }
   }
 
-  const [pagePosters, all, settings] = await Promise.all([
+  const [pagePosters, all, settings, users] = await Promise.all([
     page ? content.postersByIds(page.posterIds) : Promise.resolve([]),
     content.listPosters(),
     (await useSettingsRepo()).get(),
+    (await useUsers()).list(),
   ])
+  // Each poster's marketing user, by name only; the buttons reach the numbers through /go.
+  const userBy = new Map(users.map(u => [u.id, u]))
+  const withContact = (p: Poster): PublicPoster => {
+    const owner = contactOwner(p.ownerId ? userBy.get(p.ownerId) : null)
+    return owner ? { ...toPublicPoster(p), contactName: owner.name } : toPublicPoster(p)
+  }
   // In the page's own order, live ones only.
   const byId = new Map(pagePosters.map(p => [p.id, p]))
   const posters = (page?.posterIds ?? []).map(id => byId.get(id)).filter((p): p is Poster => !!p && posterState(p, day) === 'tayang')
   const { company, tagline, logoUrl, address, wa, phone, email, hours, website, brochure } = settings
   const view: PublicView = {
     kind,
-    posters: kind === 'page' ? posters.map(toPublicPoster) : [],
+    posters: kind === 'page' ? posters.map(withContact) : [],
     announcements: all.filter(p => p.kind === 'pengumuman' && posterState(p, day) === 'tayang').map(toPublicPoster),
     settings: { company, tagline, logoUrl, address, wa, phone, email, hours, website, brochure },
   }

@@ -1,7 +1,8 @@
 import { today } from '#shared/utils/format'
 
 // Click logger: count the click (no personal data), then redirect.
-// Targets come only from Settings, never from the URL, so this can't be used as an open redirect.
+// Targets come only from the poster's marketing user or Settings, never from the URL,
+// so this can't be used as an open redirect.
 export default defineEventHandler(async event => {
   const posterId = getRouterParam(event, 'posterId') ?? ''
   const button = getRouterParam(event, 'button') ?? ''
@@ -10,10 +11,12 @@ export default defineEventHandler(async event => {
     .toUpperCase()
   const s = await (await useSettingsRepo()).get()
   const poster = await (await useContent()).posterById(posterId)
+  const owner = poster?.ownerId ? await (await useUsers()).byId(poster.ownerId) : null
+  const { wa, phone, email } = contactNumbers(owner, s)
   const targets: Record<string, string> = {
-    wa: `https://wa.me/${s.wa}`,
-    tel: `tel:${s.phone.replace(/\s/g, '')}`,
-    email: `mailto:${s.email}`,
+    wa: `https://wa.me/${wa}`,
+    tel: `tel:${phone.replace(/[^\d+]/g, '')}`,
+    email: `mailto:${email}`,
     // The poster's own brochure (one of our uploads) or the default from Settings.
     doc: poster?.brochureUrl || s.brochure,
   }
@@ -25,7 +28,9 @@ export default defineEventHandler(async event => {
   if (poster && /^[A-Z0-9]{8}$/.test(card)) {
     const visit = classifyVisit(event, `click|${card}|${posterId}|${button}`)
     if (visit === 'count' || visit === 'bot')
-      await (await useCardsRepo()).countClick(today(), card, `${posterId}|${button}`, visit === 'count' ? 'click' : 'bot')
+      await (
+        await useCardsRepo()
+      ).countClick(today(), card, `${posterId}|${button}`, visit === 'count' ? 'click' : 'bot')
   }
   setResponseHeader(event, 'Cache-Control', 'no-store')
   return sendRedirect(event, target, 302)

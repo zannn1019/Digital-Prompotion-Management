@@ -26,13 +26,16 @@ const toCard = (r: CardRow): Card => ({
   writtenBy: r.writtenBy,
   locked: r.locked,
   lastTap: toStamp(r.lastTap),
+  ownerId: r.ownerId,
 })
 
 export function cardsRepo(db: Database) {
   return {
     /** All cards, newest first. */
     async list(): Promise<Card[]> {
-      return (await db.select().from(cards).orderBy(desc(cards.createdAt), desc(cards.code))).map(toCard)
+      return (await db.select().from(cards).orderBy(desc(cards.createdAt), desc(cards.code))).map(
+        toCard,
+      )
     },
 
     async byCode(code: string): Promise<Card | null> {
@@ -46,7 +49,13 @@ export function cardsRepo(db: Database) {
     },
 
     /** Registers `count` cards with fresh random codes ("Label 1", "Label 2", … when more than one). */
-    async create(input: { count: number; label: string; group: string; pageId: string | null }): Promise<Card[]> {
+    async create(input: {
+      count: number
+      label: string
+      group: string
+      pageId: string | null
+      ownerId?: string | null
+    }): Promise<Card[]> {
       const created: Card[] = []
       for (let i = 0; i < input.count; i++) {
         // A clash with an existing code is astronomically rare; try again if it happens.
@@ -58,6 +67,7 @@ export function cardsRepo(db: Database) {
               label: input.count > 1 ? `${input.label} ${i + 1}` : input.label,
               group: input.group,
               pageId: input.pageId,
+              ownerId: input.ownerId ?? null,
             })
             .onConflictDoNothing()
             .returning()
@@ -74,18 +84,35 @@ export function cardsRepo(db: Database) {
       await db.update(cards).set({ pageId }).where(inArray(cards.code, codes))
     },
 
+    /** Hands cards to a marketing user (null: nobody). */
+    async setOwner(codes: string[], ownerId: string | null): Promise<void> {
+      await db.update(cards).set({ ownerId }).where(inArray(cards.code, codes))
+    },
+
     async setStatus(codes: string[], status: Card['status']): Promise<void> {
       await db.update(cards).set({ status }).where(inArray(cards.code, codes))
     },
 
     /** Records a write attempt from the phone writer. A failed attempt never undoes an earlier success. */
-    async recordWrite(code: string, ok: boolean, locked: boolean, userId: string): Promise<Card | null> {
+    async recordWrite(
+      code: string,
+      ok: boolean,
+      locked: boolean,
+      userId: string,
+    ): Promise<Card | null> {
       const [r] = await db
         .update(cards)
         .set(
           ok
-            ? { writeStatus: 'sudah', writtenAt: new Date(), writtenBy: userId, locked: sql`${cards.locked} or ${locked}` }
-            : { writeStatus: sql`case when ${cards.writeStatus} = 'sudah' then 'sudah'::write_status else 'gagal'::write_status end` },
+            ? {
+                writeStatus: 'sudah',
+                writtenAt: new Date(),
+                writtenBy: userId,
+                locked: sql`${cards.locked} or ${locked}`,
+              }
+            : {
+                writeStatus: sql`case when ${cards.writeStatus} = 'sudah' then 'sudah'::write_status else 'gagal'::write_status end`,
+              },
         )
         .where(eq(cards.code, code))
         .returning()
@@ -109,16 +136,28 @@ export function cardsRepo(db: Database) {
       const col = kind === 'tap' ? dailyStats.taps : dailyStats.bots
       await db
         .insert(dailyStats)
-        .values({ date, cardCode: code, pageId, taps: kind === 'tap' ? 1 : 0, bots: kind === 'bot' ? 1 : 0 })
+        .values({
+          date,
+          cardCode: code,
+          pageId,
+          taps: kind === 'tap' ? 1 : 0,
+          bots: kind === 'bot' ? 1 : 0,
+        })
         .onConflictDoUpdate({
           target: [dailyStats.date, dailyStats.cardCode],
           set: { [kind === 'tap' ? 'taps' : 'bots']: sql`${col} + 1` },
         })
-      if (kind === 'tap') await db.update(cards).set({ lastTap: new Date() }).where(eq(cards.code, code))
+      if (kind === 'tap')
+        await db.update(cards).set({ lastTap: new Date() }).where(eq(cards.code, code))
     },
 
     /** One contact-button click (`posterId|button`). Only counted for a card already tapped that day. */
-    async countClick(date: string, code: string, key: string, kind: 'click' | 'bot'): Promise<void> {
+    async countClick(
+      date: string,
+      code: string,
+      key: string,
+      kind: 'click' | 'bot',
+    ): Promise<void> {
       await db
         .update(dailyStats)
         .set(
@@ -136,7 +175,14 @@ export function cardsRepo(db: Database) {
         .select()
         .from(dailyStats)
         .where(between(dailyStats.date, from, to))
-      return rows.map(r => ({ date: r.date, card: r.cardCode, pageId: r.pageId ?? '', taps: r.taps, bots: r.bots, clicks: r.clicks }))
+      return rows.map(r => ({
+        date: r.date,
+        card: r.cardCode,
+        pageId: r.pageId ?? '',
+        taps: r.taps,
+        bots: r.bots,
+        clicks: r.clicks,
+      }))
     },
   }
 }

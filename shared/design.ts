@@ -94,17 +94,21 @@ export const ELEMENT_LABEL: Record<DesignElement['type'], string> = {
   info: 'Kotak Informasi',
 }
 
-export const isLocked = (el: DesignElement): el is BrandElement => el.type === 'logo' || el.type === 'info'
+export const isLocked = (el: DesignElement): el is BrandElement =>
+  el.type === 'logo' || el.type === 'info'
 
 /** Short name for lists: the element's own text when it has one. */
 export function elementName(el: DesignElement): string {
-  if (el.type === 'text' || el.type === 'label') return el.text.split('\n')[0]!.slice(0, 28) || ELEMENT_LABEL[el.type]
+  if (el.type === 'text' || el.type === 'label')
+    return el.text.split('\n')[0]!.slice(0, 28) || ELEMENT_LABEL[el.type]
   return ELEMENT_LABEL[el.type]
 }
 
 /** Smallest font in the design, for the readability check. */
 export function smallestFont(design: PosterDesign): number | null {
-  const sizes = design.elements.flatMap(el => (el.type === 'text' || el.type === 'label' ? [el.fontSize] : []))
+  const sizes = design.elements.flatMap(el =>
+    el.type === 'text' || el.type === 'label' ? [el.fontSize] : [],
+  )
   return sizes.length ? Math.min(...sizes) : null
 }
 

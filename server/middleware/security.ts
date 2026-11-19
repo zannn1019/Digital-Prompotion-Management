@@ -25,12 +25,20 @@ export default defineEventHandler(event => {
     // The site's own host comes from NUXT_PUBLIC_SITE_URL when set; X-Forwarded-Host only counts behind a trusted proxy.
     const config = useRuntimeConfig(event)
     const origin = getRequestHeader(event, 'origin')
-    const host = originHost(config.public.siteUrl) ?? getRequestHost(event, { xForwardedHost: !!config.trustProxy })
-    if (origin && originHost(origin) !== host) throw createError({ statusCode: 403, statusMessage: 'Permintaan ditolak.' })
+    const host =
+      originHost(config.public.siteUrl) ??
+      getRequestHost(event, { xForwardedHost: !!config.trustProxy })
+    if (origin && originHost(origin) !== host)
+      throw createError({ statusCode: 403, statusMessage: 'Permintaan ditolak.' })
 
     // Refuse oversized bodies before they are read into memory.
-    const tooBig = bodySizeError(event.path, getRequestHeader(event, 'content-length'), getRequestHeader(event, 'transfer-encoding'))
-    if (tooBig === 411) throw createError({ statusCode: 411, statusMessage: 'Ukuran data tidak diketahui.' })
+    const tooBig = bodySizeError(
+      event.path,
+      getRequestHeader(event, 'content-length'),
+      getRequestHeader(event, 'transfer-encoding'),
+    )
+    if (tooBig === 411)
+      throw createError({ statusCode: 411, statusMessage: 'Ukuran data tidak diketahui.' })
     if (tooBig === 413)
       throw createError({
         statusCode: 413,

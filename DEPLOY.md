@@ -62,7 +62,7 @@ NUXT_TRUST_PROXY=true
 
 - `POSTGRES_PASSWORD` protects the PostgreSQL container that `docker compose` starts next to the app (its data is kept in the `pgdata` volume). Compose refuses to start without it. The database is only reachable from the app container. The app creates and updates its tables itself at start-up (migrations).
 - `NUXT_PUBLIC_SITE_URL` must be the exact address people open. It goes onto the NFC cards (`<site>/k/<code>`) and it is the only origin allowed to save changes. **Set it before writing real cards**: a written card keeps its address.
-- `NUXT_SEED_PASSWORD` is the password of the only seeded account, the Super Admin `admin@rs-bethesda.test`. The app starts with no posters, pages or cards. The app refuses to start if it is shorter than 10 characters, so the placeholder in `.env.example` must be replaced.
+- `NUXT_SEED_PASSWORD` is the password of the only seeded account, the Super Admin `admin@rs-bethesda.test`. The app starts with no posters, pages or cards. The app refuses to start without it or with fewer than 10 characters, so the placeholder in `.env.example` must be replaced. It is only used while the database is empty, and the Super Admin must choose a new password at the first sign-in. Leave `NUXT_PUBLIC_DEMO_LOGIN` off (the default).
 - `NUXT_TRUST_PROXY=true` is correct because Nginx is in front and the container is only reachable through it.
 - `.env` is never committed (it is in `.gitignore` and `.dockerignore`).
 

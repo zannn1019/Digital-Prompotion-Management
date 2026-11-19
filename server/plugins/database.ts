@@ -7,5 +7,7 @@ export default defineNitroPlugin(() => {
   }
   initDatabase()
     .ready.then(() => console.info('[db] Database ready (migrations applied).'))
-    .catch(err => console.error('[db] Database setup failed:', err instanceof Error ? err.message : err))
+    .catch(err =>
+      console.error('[db] Database setup failed:', err instanceof Error ? err.message : err),
+    )
 })

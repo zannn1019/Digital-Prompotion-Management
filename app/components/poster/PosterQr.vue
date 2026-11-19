@@ -5,7 +5,11 @@ import { encode } from 'uqr'
 const props = defineProps<{ value: string; label: string; size?: number }>()
 const qr = computed(() => encode(props.value, { border: 2 }))
 /** One path for all dark modules keeps the SVG small. */
-const path = computed(() => qr.value.data.flatMap((row, y) => row.flatMap((dark, x) => (dark ? [`M${x} ${y}h1v1h-1z`] : []))).join(''))
+const path = computed(() =>
+  qr.value.data
+    .flatMap((row, y) => row.flatMap((dark, x) => (dark ? [`M${x} ${y}h1v1h-1z`] : [])))
+    .join(''),
+)
 </script>
 
 <template>

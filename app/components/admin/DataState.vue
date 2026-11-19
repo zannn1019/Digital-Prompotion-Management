@@ -24,7 +24,12 @@ const emit = defineEmits<{ retry: [] }>()
   >
     <Button class="h-11" @click="emit('retry')">Coba lagi</Button>
   </AdminEmptyState>
-  <AdminEmptyState v-else-if="empty" :icon="emptyIcon" :title="emptyTitle ?? 'Belum ada data'" :description="emptyDescription">
+  <AdminEmptyState
+    v-else-if="empty"
+    :icon="emptyIcon"
+    :title="emptyTitle ?? 'Belum ada data'"
+    :description="emptyDescription"
+  >
     <slot name="empty-actions" />
   </AdminEmptyState>
   <slot v-else />

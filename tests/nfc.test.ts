@@ -3,7 +3,9 @@ import { nfcErrorInfo, nfcErrorReason } from '../app/utils/nfcErrors'
 
 describe('Web NFC errors', () => {
   it('keeps the raw name and message for the debug panel', () => {
-    expect(nfcErrorInfo(new DOMException('Failed to write due to an IO error: null', 'NetworkError'))).toEqual({
+    expect(
+      nfcErrorInfo(new DOMException('Failed to write due to an IO error: null', 'NetworkError')),
+    ).toEqual({
       name: 'NetworkError',
       message: 'Failed to write due to an IO error: null',
     })

@@ -31,7 +31,11 @@ export function useFieldErrors() {
         toast.error(`Ada ${n} isian yang perlu diperbaiki. Lihat tanda merah.`)
         void focusFirstError()
       } else {
-        toast.error(e?.data?.statusMessage || e?.statusMessage || 'Gagal menyimpan. Periksa koneksi, lalu coba lagi.')
+        toast.error(
+          e?.data?.statusMessage ||
+            e?.statusMessage ||
+            'Gagal menyimpan. Periksa koneksi, lalu coba lagi.',
+        )
       }
       return null
     }

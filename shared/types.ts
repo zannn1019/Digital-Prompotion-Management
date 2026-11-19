@@ -1,7 +1,7 @@
 // Shared between the Nuxt app and the server routes.
 import type { PosterDesign } from './design'
 
-export type Role = 'super' | 'staff'
+export type Role = 'super' | 'staff' | 'marketing' | 'approver'
 export type UserStatus = 'active' | 'locked' | 'inactive'
 
 export interface User {
@@ -15,6 +15,9 @@ export interface User {
   lockedUntil?: string | null
   /** Signed in with a temporary password: must choose a new one before doing anything else. */
   mustChangePassword?: boolean
+  /** Marketing contact. The WhatsApp and phone buttons of posters this user owns open these. */
+  wa?: string | null
+  phone?: string | null
 }
 
 export type PosterKind = 'gambar' | 'pengumuman'
@@ -35,6 +38,8 @@ export interface Poster {
   end: string
   updatedAt: string
   updatedBy: string
+  /** Marketing user in charge of this poster, if any. */
+  ownerId?: string | null
   // kind = 'gambar' (finished poster image)
   imageUrl?: string
   imageFile?: string
@@ -58,6 +63,23 @@ export interface Poster {
   // kind = 'pengumuman'
   text?: string
   level?: AnnouncementLevel
+  /** Submitted change waiting for an Approver; visitors keep seeing the fields above until then. */
+  pending?: (PendingChange & { by: string; at: string }) | null
+  /** The last submission was turned down, and why. */
+  rejection?: { note: string; by: string; at: string } | null
+}
+
+/** The poster as it would be after approval: every editable field (no id, timestamps or review data). */
+export type PendingFields = Omit<
+  Poster,
+  'id' | 'updatedAt' | 'updatedBy' | 'archived' | 'archivedFrom' | 'pending' | 'rejection'
+>
+
+/** A change waiting for approval, stored next to the live poster. */
+export interface PendingChange {
+  fields: PendingFields
+  /** Pages the poster should be on after approval (image posters). */
+  pageIds?: string[]
 }
 
 /** Derived from status, archive flag and schedule window. */
@@ -71,6 +93,8 @@ export interface Page {
   theme: Theme
   status: PublishStatus
   isDefault: boolean
+  /** Marketing user in charge of this page, if any. */
+  ownerId: string | null
   posterIds: string[]
   updatedAt: string
 }
@@ -89,6 +113,8 @@ export interface Card {
   writtenBy: string | null
   locked: boolean
   lastTap: string | null
+  /** Marketing user this card belongs to, if any. */
+  ownerId: string | null
 }
 
 export interface AuditEntry {
@@ -148,13 +174,31 @@ export const PUBLIC_POSTER_FIELDS = [
   'level',
 ] as const satisfies readonly (keyof Poster)[]
 
-/** `name` is only set in the admin previews, which render full posters. */
-export type PublicPoster = Pick<Poster, (typeof PUBLIC_POSTER_FIELDS)[number]> & { name?: string }
+/**
+ * `name` is only set in the admin previews, which render full posters. `contactName` is the name of
+ * the poster's marketing user (only the name: the buttons reach the numbers through /go).
+ */
+export type PublicPoster = Pick<Poster, (typeof PUBLIC_POSTER_FIELDS)[number]> & {
+  name?: string
+  contactName?: string
+}
 
 /** What a phone sees after tapping a card. */
 export interface PublicView {
   kind: 'page' | 'fallback' | 'notfound'
   posters: PublicPoster[]
   announcements: PublicPoster[]
-  settings: Pick<Settings, 'company' | 'tagline' | 'logoUrl' | 'address' | 'wa' | 'phone' | 'email' | 'hours' | 'website' | 'brochure'>
+  settings: Pick<
+    Settings,
+    | 'company'
+    | 'tagline'
+    | 'logoUrl'
+    | 'address'
+    | 'wa'
+    | 'phone'
+    | 'email'
+    | 'hours'
+    | 'website'
+    | 'brochure'
+  >
 }

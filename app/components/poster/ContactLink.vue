@@ -6,7 +6,12 @@ import type { ContactButton } from '#shared/types'
 import { CONTACT_BUTTON, CONTACT_CTA } from '#shared/constants'
 
 const props = withDefaults(
-  defineProps<{ type: ContactButton; href?: string; variant?: 'primary' | 'outline' | 'icon'; label?: string }>(),
+  defineProps<{
+    type: ContactButton
+    href?: string
+    variant?: 'primary' | 'outline' | 'icon'
+    label?: string
+  }>(),
   { href: undefined, variant: 'outline', label: undefined },
 )
 const ICON = { wa: MessageCircle, tel: Phone, email: Mail, doc: FileDown }
@@ -18,7 +23,11 @@ function onClick() {
     opening.value = false
   }, 2500)
 }
-const text = computed(() => props.label ?? (props.variant === 'primary' ? CONTACT_CTA[props.type] : CONTACT_BUTTON[props.type]))
+const text = computed(
+  () =>
+    props.label ??
+    (props.variant === 'primary' ? CONTACT_CTA[props.type] : CONTACT_BUTTON[props.type]),
+)
 </script>
 
 <template>
@@ -28,7 +37,7 @@ const text = computed(() => props.label ?? (props.variant === 'primary' ? CONTAC
     :aria-label="variant === 'icon' ? CONTACT_BUTTON[type] : text"
     rel="noopener"
     :class="[
-      'flex items-center justify-center gap-2.5 font-bold no-underline transition active:scale-[.97] active:brightness-90 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-navy',
+      'flex items-center justify-center gap-2.5 font-bold no-underline transition focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-brand-navy active:scale-[.97] active:brightness-90',
       variant === 'icon'
         ? 'size-14 shrink-0 rounded-[14px] border-2 border-slate-300 bg-white text-brand-navy'
         : variant === 'primary'

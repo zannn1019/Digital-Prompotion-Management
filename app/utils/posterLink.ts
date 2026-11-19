@@ -4,7 +4,12 @@
  * which a client or a cache in front of the app could forge. Without it, only dev uses the request origin;
  * production returns undefined and the page shows no QR code.
  */
-export function posterLink(code: string, siteUrl: string, dev: boolean, requestOrigin: () => string): string | undefined {
+export function posterLink(
+  code: string,
+  siteUrl: string,
+  dev: boolean,
+  requestOrigin: () => string,
+): string | undefined {
   const origin = siteUrl.replace(/\/+$/, '') || (dev ? requestOrigin() : '')
   return origin ? `${origin}/k/${encodeURIComponent(code)}` : undefined
 }

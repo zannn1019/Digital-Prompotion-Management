@@ -1,6 +1,6 @@
 // Posters, announcements and pages in PostgreSQL. Plain TypeScript on Drizzle (no Nuxt imports).
 import { and, asc, desc, eq, inArray, max, or, sql } from 'drizzle-orm'
-import type { Page, Poster, Theme, PublishStatus } from '#shared/types'
+import type { Page, PendingChange, Poster, Theme, PublishStatus } from '#shared/types'
 import type { Database } from '../db/client'
 import { pagePosters, pages, posters } from '../db/schema'
 import { toStamp } from '../db/time'
@@ -9,7 +9,12 @@ import { isUniqueViolation, newId } from './ids'
 type PosterRow = typeof posters.$inferSelect
 type PosterInsert = typeof posters.$inferInsert
 /** The fields a create or update may set (id, timestamps and author are filled in here). */
-export type PosterFields = Omit<Poster, 'id' | 'updatedAt' | 'updatedBy' | 'archived'> & { archived?: boolean }
+export type PosterFields = Omit<
+  Poster,
+  'id' | 'updatedAt' | 'updatedBy' | 'archived' | 'pending' | 'rejection'
+> & {
+  archived?: boolean
+}
 
 /** Row → API shape: empty optional fields are left out, like the API always did. */
 function toPoster(r: PosterRow): Poster {
@@ -23,6 +28,13 @@ function toPoster(r: PosterRow): Poster {
     end: r.end,
     updatedAt: toStamp(r.updatedAt) ?? '',
     updatedBy: r.updatedBy ?? '',
+    ownerId: r.ownerId,
+    pending: r.pending
+      ? { ...r.pending, by: r.pendingBy ?? '', at: toStamp(r.pendingAt) ?? '' }
+      : null,
+    rejection: r.rejectNote
+      ? { note: r.rejectNote, by: r.rejectedBy ?? '', at: toStamp(r.rejectedAt) ?? '' }
+      : null,
   }
   const optional = {
     archivedFrom: r.archivedFrom,
@@ -56,6 +68,7 @@ function toRow(f: PosterFields): Omit<PosterInsert, 'id' | 'updatedBy'> {
     status: f.status,
     start: f.start,
     end: f.end,
+    ownerId: f.ownerId ?? null,
     imageUrl: f.imageUrl ?? null,
     imageFile: f.imageFile ?? null,
     imageSize: f.imageSize ?? null,
@@ -83,6 +96,7 @@ const toPage = (r: PageRow, posterIds: string[]): Page => ({
   theme: r.theme,
   status: r.status,
   isDefault: r.isDefault,
+  ownerId: r.ownerId,
   posterIds,
   updatedAt: toStamp(r.updatedAt) ?? '',
 })
@@ -141,7 +155,12 @@ export function contentRepo(db: Database) {
     },
 
     /** Replaces the poster's fields (the edit form sends all of them). */
-    async replacePoster(id: string, f: PosterFields, userId: string, pageIds?: string[]): Promise<Poster | null> {
+    async replacePoster(
+      id: string,
+      f: PosterFields,
+      userId: string,
+      pageIds?: string[],
+    ): Promise<Poster | null> {
       return db.transaction(async tx => {
         const [r] = await tx
           .update(posters)
@@ -156,7 +175,12 @@ export function contentRepo(db: Database) {
     /** Changes a few fields (archive, extend). */
     async patchPoster(
       id: string,
-      patch: Partial<{ status: PublishStatus; archived: boolean; archivedFrom: PublishStatus | null; end: string }>,
+      patch: Partial<{
+        status: PublishStatus
+        archived: boolean
+        archivedFrom: PublishStatus | null
+        end: string
+      }>,
       userId: string,
     ): Promise<Poster | null> {
       const [r] = await db
@@ -167,6 +191,80 @@ export function contentRepo(db: Database) {
       return r ? toPoster(r) : null
     },
 
+    // ---- Approval ----
+
+    /** Stores a submitted change next to the live poster (replacing an earlier one) and clears a rejection. */
+    async submitChange(id: string, change: PendingChange, userId: string): Promise<Poster | null> {
+      const [r] = await db
+        .update(posters)
+        .set({
+          pending: change,
+          pendingBy: userId,
+          pendingAt: new Date(),
+          rejectNote: null,
+          rejectedBy: null,
+          rejectedAt: null,
+        })
+        .where(eq(posters.id, id))
+        .returning()
+      return r ? toPoster(r) : null
+    },
+
+    /** Drops a waiting change (withdrawn, approved, or the poster was archived). */
+    async clearPending(id: string): Promise<void> {
+      await db
+        .update(posters)
+        .set({ pending: null, pendingBy: null, pendingAt: null })
+        .where(eq(posters.id, id))
+    },
+
+    /** Turns down the waiting change: it is removed and the reason is kept for the submitter. */
+    async rejectChange(id: string, note: string, userId: string): Promise<Poster | null> {
+      const [r] = await db
+        .update(posters)
+        .set({
+          pending: null,
+          pendingBy: null,
+          pendingAt: null,
+          rejectNote: note,
+          rejectedBy: userId,
+          rejectedAt: new Date(),
+        })
+        .where(eq(posters.id, id))
+        .returning()
+      return r ? toPoster(r) : null
+    },
+
+    /**
+     * Applies the waiting change to the live poster in one transaction: fields, pages, then clears the
+     * review columns. Null when there was nothing waiting (someone else handled it first).
+     */
+    async approveChange(id: string, approverId: string): Promise<Poster | null> {
+      return db.transaction(async tx => {
+        // Locks the row, so two Approvers clicking at once can't both apply it.
+        const [row] = await tx.select().from(posters).where(eq(posters.id, id)).for('update')
+        if (!row?.pending) return null
+        const { fields, pageIds } = row.pending
+        const [r] = await tx
+          .update(posters)
+          .set({
+            ...toRow({ ...fields, kind: row.kind }),
+            updatedAt: new Date(),
+            updatedBy: row.pendingBy ?? approverId,
+            pending: null,
+            pendingBy: null,
+            pendingAt: null,
+            rejectNote: null,
+            rejectedBy: null,
+            rejectedAt: null,
+          })
+          .where(eq(posters.id, id))
+          .returning()
+        if (row.kind === 'gambar' && pageIds) await placeIn(tx as unknown as Database, id, pageIds)
+        return toPoster(r!)
+      })
+    },
+
     /** Page IDs per poster, and page names, for the poster list. */
     async pagesOfPosters(): Promise<Map<string, { id: string; name: string }[]>> {
       const rows = await db
@@ -175,7 +273,8 @@ export function contentRepo(db: Database) {
         .innerJoin(pages, eq(pages.id, pagePosters.pageId))
         .orderBy(asc(pages.createdAt))
       const out = new Map<string, { id: string; name: string }[]>()
-      for (const r of rows) out.set(r.posterId, [...(out.get(r.posterId) ?? []), { id: r.id, name: r.name }])
+      for (const r of rows)
+        out.set(r.posterId, [...(out.get(r.posterId) ?? []), { id: r.id, name: r.name }])
       return out
     },
 
@@ -199,11 +298,11 @@ export function contentRepo(db: Database) {
     },
 
     /** New, empty, draft page. Null when the name is taken (case-insensitive). */
-    async createPage(name: string): Promise<Page | null> {
+    async createPage(name: string, ownerId: string | null = null): Promise<Page | null> {
       try {
         const [r] = await db
           .insert(pages)
-          .values({ id: newId('pg'), name })
+          .values({ id: newId('pg'), name, ownerId })
           .returning()
         return toPage(r!, [])
       } catch (e) {
@@ -212,8 +311,11 @@ export function contentRepo(db: Database) {
       }
     },
 
-    /** Renames, re-themes or (un)publishes. Returns 'name-taken' when the new name is in use. */
-    async updatePage(id: string, patch: Partial<{ name: string; theme: Theme; status: PublishStatus }>): Promise<'ok' | 'name-taken'> {
+    /** Renames, re-themes, (un)publishes or hands over. Returns 'name-taken' when the new name is in use. */
+    async updatePage(
+      id: string,
+      patch: Partial<{ name: string; theme: Theme; status: PublishStatus; ownerId: string | null }>,
+    ): Promise<'ok' | 'name-taken'> {
       try {
         await db
           .update(pages)
@@ -242,7 +344,10 @@ export function contentRepo(db: Database) {
           : new Set<string>()
         const kept = unique.filter(id => valid.has(id))
         await tx.delete(pagePosters).where(eq(pagePosters.pageId, pageId))
-        if (kept.length) await tx.insert(pagePosters).values(kept.map((posterId, position) => ({ pageId, posterId, position })))
+        if (kept.length)
+          await tx
+            .insert(pagePosters)
+            .values(kept.map((posterId, position) => ({ pageId, posterId, position })))
         await tx.update(pages).set({ updatedAt: new Date() }).where(eq(pages.id, pageId))
         return kept
       })
@@ -252,7 +357,10 @@ export function contentRepo(db: Database) {
     async setDefaultPage(pageId: string): Promise<void> {
       await db.transaction(async tx => {
         await tx.update(pages).set({ isDefault: false }).where(eq(pages.isDefault, true))
-        await tx.update(pages).set({ isDefault: true, updatedAt: new Date() }).where(eq(pages.id, pageId))
+        await tx
+          .update(pages)
+          .set({ isDefault: true, updatedAt: new Date() })
+          .where(eq(pages.id, pageId))
       })
     },
   }
@@ -264,7 +372,10 @@ async function placeIn(db: Database, posterId: string, pageIds: string[]) {
   const has = new Set(existing.map(r => r.pageId))
   const want = new Set(pageIds)
   const remove = [...has].filter(id => !want.has(id))
-  if (remove.length) await db.delete(pagePosters).where(and(eq(pagePosters.posterId, posterId), inArray(pagePosters.pageId, remove)))
+  if (remove.length)
+    await db
+      .delete(pagePosters)
+      .where(and(eq(pagePosters.posterId, posterId), inArray(pagePosters.pageId, remove)))
   const valid = new Set(
     (
       await db

@@ -4,7 +4,12 @@
  * Without it: dev uses the address the admin opened, a build falls back to Settings' placeholder.
  * Pure logic, no auto-imports, so tests can use it.
  */
-export function cardBaseUrl(siteUrl: string, dev: boolean, requestOrigin: () => string, fallback: string): string {
+export function cardBaseUrl(
+  siteUrl: string,
+  dev: boolean,
+  requestOrigin: () => string,
+  fallback: string,
+): string {
   const origin = siteUrl.trim().replace(/\/+$/, '') || (dev ? requestOrigin() : '')
   return origin ? `${origin}/k/` : fallback
 }

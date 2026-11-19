@@ -24,7 +24,11 @@ export function initDatabase() {
   const { db } = createDatabase(url)
   // Migrations ship with the app: server/db/migrations next to the working directory (also in the Docker image).
   const ready = runMigrations(db, resolve(process.cwd(), 'server/db/migrations')).then(() =>
-    seedDatabase(db, seedPassword(process.env.NUXT_SEED_PASSWORD)),
+    // A production build makes the first Super Admin choose a new password at the first sign-in,
+    // so the one from the .env file doesn't stay in use.
+    seedDatabase(db, seedPassword(process.env.NUXT_SEED_PASSWORD, !import.meta.dev), {
+      mustChangePassword: !import.meta.dev,
+    }),
   )
   instance = { db, ready }
   return instance
@@ -36,7 +40,8 @@ export async function useDrizzle(): Promise<Database> {
     throw createError({
       statusCode: 503,
       statusMessage: 'Database belum diatur.',
-      message: 'NUXT_DATABASE_URL is not set. For local development run `npm run db:up` and set it in .env (see README).',
+      message:
+        'NUXT_DATABASE_URL is not set. For local development run `npm run db:up` and set it in .env (see README).',
     })
   const { db, ready } = initDatabase()
   await ready
@@ -59,7 +64,14 @@ export async function useContent() {
 }
 
 /** Records one entry in the audit log. */
-export async function logAudit(userId: string, action: string, entity: string, target: string, before = '', after = '') {
+export async function logAudit(
+  userId: string,
+  action: string,
+  entity: string,
+  target: string,
+  before = '',
+  after = '',
+) {
   await auditRepo(await useDrizzle()).log(userId, action, entity, target, before, after)
 }
 

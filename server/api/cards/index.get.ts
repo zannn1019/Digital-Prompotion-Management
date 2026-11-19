@@ -8,11 +8,17 @@ export default defineEventHandler(async event => {
   ])
   const pageName = new Map(pages.map(p => [p.id, p.name]))
   // The address written onto the cards: the configured site (NUXT_PUBLIC_SITE_URL), see server/utils/cardLink.ts.
-  const base = cardBaseUrl(useRuntimeConfig(event).public.siteUrl, import.meta.dev, () => getRequestURL(event).origin, settings.baseUrl)
+  const base = cardBaseUrl(
+    useRuntimeConfig(event).public.siteUrl,
+    import.meta.dev,
+    () => getRequestURL(event).origin,
+    settings.baseUrl,
+  )
   return list.map(c => ({
     ...c,
     pageName: (c.pageId && pageName.get(c.pageId)) || null,
     writtenByName: (c.writtenBy && names.get(c.writtenBy)) || null,
+    ownerName: (c.ownerId && names.get(c.ownerId)) || null,
     url: base + c.code,
   }))
 })

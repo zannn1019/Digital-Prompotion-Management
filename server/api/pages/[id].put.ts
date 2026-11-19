@@ -4,16 +4,40 @@ export default defineEventHandler(async event => {
   const page = await content.pageById(getRouterParam(event, 'id') ?? '')
   if (!page) throw createError({ statusCode: 404, statusMessage: 'Halaman tidak ditemukan.' })
   const input = await parseBody(event, pageUpdateSchema)
+  // The general page is a site-wide choice, like Settings.
+  if (input.isDefault && user.role !== 'super')
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Hanya Super Admin yang bisa mengganti halaman umum default.',
+    })
 
+  const ownerId =
+    input.ownerId === undefined ? undefined : await resolveOwner(input.ownerId, user, page.ownerId)
   // Renaming is checked first: a name already in use stops the whole save.
-  if (input.name || input.theme || input.status) {
-    const result = await content.updatePage(page.id, { name: input.name, theme: input.theme, status: input.status })
+  if (input.name || input.theme || input.status || ownerId !== undefined) {
+    const result = await content.updatePage(page.id, {
+      name: input.name,
+      theme: input.theme,
+      status: input.status,
+      ownerId,
+    })
     if (result === 'name-taken')
       throw createError({
         statusCode: 422,
         statusMessage: 'Periksa isian',
         data: { errors: { name: 'Nama ini sudah dipakai halaman lain.' } },
       })
+  }
+  if (ownerId !== undefined && ownerId !== page.ownerId) {
+    const names = await (await useUsers()).names()
+    await logAudit(
+      user.id,
+      'Mengubah',
+      'Halaman',
+      page.name,
+      `Marketing: ${(page.ownerId && names.get(page.ownerId)) || '-'}`,
+      `Marketing: ${(ownerId && names.get(ownerId)) || '-'}`,
+    )
   }
   if (input.posterIds) {
     // Only existing image posters can be placed; duplicates are dropped.
@@ -30,7 +54,14 @@ export default defineEventHandler(async event => {
   if (input.isDefault) {
     const prev = await content.defaultPage()
     await content.setDefaultPage(page.id)
-    await logAudit(user.id, 'Mengubah', 'Halaman', 'Halaman umum default', prev?.name ?? '', page.name)
+    await logAudit(
+      user.id,
+      'Mengubah',
+      'Halaman',
+      'Halaman umum default',
+      prev?.name ?? '',
+      page.name,
+    )
   }
   if (input.status)
     await logAudit(

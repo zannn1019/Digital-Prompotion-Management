@@ -16,7 +16,11 @@ export function originHost(origin: string): string | null {
 }
 
 /** Checks the declared size before any handler reads the body; returns an error status or null. */
-export function bodySizeError(path: string, contentLength: string | undefined, transferEncoding: string | undefined): 411 | 413 | null {
+export function bodySizeError(
+  path: string,
+  contentLength: string | undefined,
+  transferEncoding: string | undefined,
+): 411 | 413 | null {
   // Without a length the body can't be checked up front; browsers always send one.
   if (contentLength === undefined) return transferEncoding ? 411 : null
   const limit = path.split('?')[0] === '/api/uploads' ? UPLOAD_BODY_LIMIT : BODY_LIMIT

@@ -13,16 +13,24 @@ export async function runMigrations(db: Database, migrationsFolder: string) {
 }
 
 /** Adds the first Super Admin and the default settings when they don't exist yet. Safe to run on every start. */
-export async function seedDatabase(db: Database, adminPassword: string) {
+export async function seedDatabase(
+  db: Database,
+  adminPassword: string,
+  opts: { mustChangePassword?: boolean } = {},
+) {
   await db.transaction(async tx => {
     const [row] = await tx.select({ n: count() }).from(users)
     if (!row?.n) {
       const id = `u${randomBytes(6).toString('hex')}`
-      await tx.insert(users).values({ id, ...SEED_ADMIN })
+      // The demo password is public, so an account seeded with it always has to change it at first sign-in.
+      const mustChangePassword =
+        !!opts.mustChangePassword ||
+        (adminPassword === DEMO_PASSWORD && process.env.NODE_ENV === 'production')
+      await tx.insert(users).values({ id, ...SEED_ADMIN, mustChangePassword })
       await tx.insert(credentials).values({ userId: id, ...hashPasswordSync(adminPassword) })
-      console.info(`[db] Created the first Super Admin: ${SEED_ADMIN.email}`)
-      if (adminPassword === DEMO_PASSWORD && process.env.NODE_ENV === 'production')
-        console.warn('[auth] The first Super Admin has the public demo password. Change it now, or set NUXT_SEED_PASSWORD.')
+      console.info(
+        `[db] Created the first Super Admin: ${SEED_ADMIN.email}${mustChangePassword ? ' (new password required at first sign-in)' : ''}`,
+      )
     }
     await tx.insert(settings).values({ key: 'site', value: DEFAULT_SETTINGS }).onConflictDoNothing()
   })

@@ -18,9 +18,24 @@ const cells = computed(() => {
 </script>
 
 <template>
-  <svg viewBox="0 0 29 29" :width="size ?? 200" :height="size ?? 200" shape-rendering="crispEdges" role="img" :aria-label="label">
+  <svg
+    viewBox="0 0 29 29"
+    :width="size ?? 200"
+    :height="size ?? 200"
+    shape-rendering="crispEdges"
+    role="img"
+    :aria-label="label"
+  >
     <rect width="29" height="29" fill="#fff" />
-    <rect v-for="c in cells" :key="`${c.x}-${c.y}`" :x="c.x" :y="c.y" width="1" height="1" fill="#09090b" />
+    <rect
+      v-for="c in cells"
+      :key="`${c.x}-${c.y}`"
+      :x="c.x"
+      :y="c.y"
+      width="1"
+      height="1"
+      fill="#09090b"
+    />
     <g fill="none" stroke="#09090b">
       <rect x="2.5" y="2.5" width="6" height="6" />
       <rect x="20.5" y="2.5" width="6" height="6" />

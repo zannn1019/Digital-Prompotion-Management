@@ -33,7 +33,8 @@ const BROWSERS = [
   '/usr/bin/chromium',
 ].filter(Boolean)
 const executablePath = BROWSERS.find(p => existsSync(p))
-if (!executablePath) throw new Error('No Chrome or Edge found. Set CHROME_PATH to a Chromium-based browser.')
+if (!executablePath)
+  throw new Error('No Chrome or Edge found. Set CHROME_PATH to a Chromium-based browser.')
 
 // A throwaway profile, so an open browser window never blocks the launch.
 const userDataDir = mkdtempSync(join(tmpdir(), 'video-render-'))
@@ -47,7 +48,10 @@ const page = await browser.newPage()
 await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 })
 await page.goto(url, { waitUntil: 'networkidle0', timeout: 120000 })
 await page.waitForFunction('window.__video', { timeout: 120000 })
-const { fps, duration } = await page.evaluate(() => ({ fps: window.__video.fps, duration: window.__video.duration }))
+const { fps, duration } = await page.evaluate(() => ({
+  fps: window.__video.fps,
+  duration: window.__video.duration,
+}))
 
 /** Seeks the timeline and waits until the DOM (and Vue) has caught up. */
 async function frameAt(t) {
@@ -101,9 +105,14 @@ const t0 = Date.now()
 for (let i = 0; i < total; i++) {
   const png = await frameAt(i / fps)
   if (!ff.stdin.write(png)) await new Promise(r => ff.stdin.once('drain', r))
-  if (i % fps === 0) process.stdout.write(`\r${Math.round((i / total) * 100)}%  ${(i / fps).toFixed(0)}/${duration}s`)
+  if (i % fps === 0)
+    process.stdout.write(
+      `\r${Math.round((i / total) * 100)}%  ${(i / fps).toFixed(0)}/${duration}s`,
+    )
 }
 ff.stdin.end()
-await new Promise((r, j) => ff.on('close', code => (code === 0 ? r() : j(new Error(`ffmpeg exited with ${code}`)))))
+await new Promise((r, j) =>
+  ff.on('close', code => (code === 0 ? r() : j(new Error(`ffmpeg exited with ${code}`)))),
+)
 await browser.close()
 console.log(`\nSaved ${out} · ${total} frames · ${((Date.now() - t0) / 1000).toFixed(0)}s`)

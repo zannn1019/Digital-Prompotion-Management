@@ -1,9 +1,10 @@
 // New pages start empty and as Draft; cards can be mapped to them once they are published.
 export default defineEventHandler(async event => {
   const user = await requireUser(event)
-  const { name } = await parseBody(event, pageCreateSchema)
+  const { name, ownerId: requested } = await parseBody(event, pageCreateSchema)
+  const ownerId = await resolveOwner(requested, user)
   // The unique index on lower(name) decides, so two requests at once can't both take a name.
-  const page = await (await useContent()).createPage(name)
+  const page = await (await useContent()).createPage(name, ownerId)
   if (!page)
     throw createError({
       statusCode: 422,

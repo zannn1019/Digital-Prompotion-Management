@@ -21,6 +21,8 @@ function toUser(r: UserRow): User {
     lastLogin: toStamp(r.lastLogin),
     lockedUntil: toIso(r.lockedUntil),
     mustChangePassword: r.mustChangePassword,
+    wa: r.wa,
+    phone: r.phone,
   }
 }
 
@@ -45,11 +47,21 @@ export function usersRepo(db: Database) {
 
     /** id → name, for showing who changed what. Small table, so one query. */
     async names(): Promise<Map<string, string>> {
-      return new Map((await db.select({ id: users.id, name: users.name }).from(users)).map(r => [r.id, r.name]))
+      return new Map(
+        (await db.select({ id: users.id, name: users.name }).from(users)).map(r => [r.id, r.name]),
+      )
     },
 
     /** Creates a user with a password (stored as a hash). Returns null when the email is taken. */
-    async create(input: { name: string; email: string; role: Role; password: string; mustChangePassword: boolean }): Promise<User | null> {
+    async create(input: {
+      name: string
+      email: string
+      role: Role
+      password: string
+      mustChangePassword: boolean
+      wa?: string | null
+      phone?: string | null
+    }): Promise<User | null> {
       const id = `u${randomBytes(6).toString('hex')}`
       const hash = await hashPassword(input.password)
       return db.transaction(async tx => {
@@ -61,6 +73,8 @@ export function usersRepo(db: Database) {
             email: input.email.toLowerCase(),
             role: input.role,
             mustChangePassword: input.mustChangePassword,
+            wa: input.wa || null,
+            phone: input.phone || null,
           })
           .onConflictDoNothing({ target: users.email })
           .returning()
@@ -73,12 +87,25 @@ export function usersRepo(db: Database) {
     /** Saves the fields the API changes on a user. */
     async update(
       id: string,
-      fields: Partial<{ role: Role; status: UserStatus; lockedUntil: string | null; mustChangePassword: boolean; lastLogin: Date }>,
+      fields: Partial<{
+        role: Role
+        status: UserStatus
+        lockedUntil: string | null
+        mustChangePassword: boolean
+        lastLogin: Date
+        wa: string | null
+        phone: string | null
+      }>,
     ): Promise<void> {
       const { lockedUntil, ...rest } = fields
       await db
         .update(users)
-        .set({ ...rest, ...(lockedUntil !== undefined ? { lockedUntil: lockedUntil ? new Date(lockedUntil) : null } : {}) })
+        .set({
+          ...rest,
+          ...(lockedUntil !== undefined
+            ? { lockedUntil: lockedUntil ? new Date(lockedUntil) : null }
+            : {}),
+        })
         .where(eq(users.id, id))
     },
 
@@ -86,7 +113,9 @@ export function usersRepo(db: Database) {
 
     /** Checks a password. An unknown user is checked against a stand-in hash, so it takes as long. */
     async verifyPassword(userId: string | undefined, password: string): Promise<boolean> {
-      const [stored] = userId ? await db.select().from(credentials).where(eq(credentials.userId, userId)) : []
+      const [stored] = userId
+        ? await db.select().from(credentials).where(eq(credentials.userId, userId))
+        : []
       return verifyPassword(password, stored)
     },
 

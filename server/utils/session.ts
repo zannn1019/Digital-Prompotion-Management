@@ -10,7 +10,13 @@ const IDLE_MS = 30 * 60 * 1000
 const EXTEND_AFTER_MS = 60 * 1000
 
 function cookieOptions() {
-  return { httpOnly: true, sameSite: 'lax' as const, secure: !import.meta.dev, path: '/', maxAge: IDLE_MS / 1000 }
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: !import.meta.dev,
+    path: '/',
+    maxAge: IDLE_MS / 1000,
+  }
 }
 
 export async function createSession(event: H3Event, userId: string) {
@@ -46,7 +52,8 @@ export async function currentUser(event: H3Event): Promise<User | null> {
   if (token && found && user) {
     // Sliding idle timeout.
     const next = Date.now() + IDLE_MS
-    if (next - found.expiresAt.getTime() > EXTEND_AFTER_MS) await repo.extendSession(token, new Date(next))
+    if (next - found.expiresAt.getTime() > EXTEND_AFTER_MS)
+      await repo.extendSession(token, new Date(next))
     setCookie(event, COOKIE, token, cookieOptions())
   }
   event.context.sessionUser = user
@@ -54,7 +61,11 @@ export async function currentUser(event: H3Event): Promise<User | null> {
 }
 
 /** The signed-in user, or a 401/403 (rules in server/utils/access.ts). */
-export async function requireUser(event: H3Event, role?: Role, opts: { allowPasswordChange?: boolean } = {}): Promise<User> {
+export async function requireUser(
+  event: H3Event,
+  role?: Role,
+  opts: { allowPasswordChange?: boolean } = {},
+): Promise<User> {
   const user = await currentUser(event)
   const denial = accessDenial(user, role, opts)
   if (denial) throw createError(denial)

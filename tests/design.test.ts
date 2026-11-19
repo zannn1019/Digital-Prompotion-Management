@@ -28,13 +28,26 @@ describe('canvas design validation', () => {
 
   it('only allows photos from our own uploads', () => {
     for (const src of ['https://evil.test/a.png', 'javascript:alert(1)', '/api/uploads/../x'])
-      expect(designSchema.safeParse({ ...paket(), elements: [makePhoto({ src })] }).success).toBe(false)
+      expect(designSchema.safeParse({ ...paket(), elements: [makePhoto({ src })] }).success).toBe(
+        false,
+      )
   })
 
   it('rejects unreadable fonts, non-hex colours and unknown fields', () => {
-    expect(designSchema.safeParse({ ...paket(), elements: [makeText({ text: 'x', fontSize: 10 })] }).success).toBe(false)
-    expect(designSchema.safeParse({ ...paket(), elements: [makeLabel({ text: 'x', fill: 'red;}' })] }).success).toBe(false)
-    expect(designSchema.safeParse({ ...paket(), elements: [{ ...makeText({ text: 'x' }), onclick: 'x' }] }).success).toBe(false)
+    expect(
+      designSchema.safeParse({ ...paket(), elements: [makeText({ text: 'x', fontSize: 10 })] })
+        .success,
+    ).toBe(false)
+    expect(
+      designSchema.safeParse({ ...paket(), elements: [makeLabel({ text: 'x', fill: 'red;}' })] })
+        .success,
+    ).toBe(false)
+    expect(
+      designSchema.safeParse({
+        ...paket(),
+        elements: [{ ...makeText({ text: 'x' }), onclick: 'x' }],
+      }).success,
+    ).toBe(false)
   })
 
   it('limits the number of elements', () => {
@@ -47,7 +60,11 @@ describe('design helpers', () => {
   it('reads text top to bottom for the text version of the poster', () => {
     const d = {
       ...paket(),
-      elements: [makeText({ text: 'Bawah', y: 900 }), makeLabel({ text: 'Tengah', y: 500 }), makeText({ text: 'Atas', y: 100 })],
+      elements: [
+        makeText({ text: 'Bawah', y: 900 }),
+        makeLabel({ text: 'Tengah', y: 500 }),
+        makeText({ text: 'Atas', y: 100 }),
+      ],
     }
     expect(designText(d)).toBe('Atas\nTengah\nBawah')
   })

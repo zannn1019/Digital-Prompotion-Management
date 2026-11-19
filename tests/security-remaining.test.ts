@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest'
 import type { User } from '#shared/types'
 import { DEDUPE_MS, createVisitCounter, isBot, isPrefetch } from '../server/utils/tapCounter'
 import { cspHeader, inlineScriptHashes } from '../server/utils/csp'
-import { DEMO_PASSWORD, hashPassword, hashPasswordSync, seedPassword, tempPassword, verifyPassword } from '../server/utils/passwords'
+import {
+  DEMO_PASSWORD,
+  hashPassword,
+  hashPasswordSync,
+  seedPassword,
+  tempPassword,
+  verifyPassword,
+} from '../server/utils/passwords'
 import { MUST_CHANGE_PASSWORD, accessDenial } from '../server/utils/access'
 import { publicUser } from '../server/utils/users'
 import { passwordChangeSchema } from '../server/utils/validation'
@@ -57,7 +64,9 @@ describe('tap and click counting (SEC-11)', () => {
     expect(isPrefetch(undefined, 'prefetch')).toBe(true)
     expect(isPrefetch(undefined, undefined)).toBe(false)
     const c = createVisitCounter()
-    expect(c.classify('203.0.113.9', 'tap|K7Q2M9XA', { ...PHONE, secPurpose: 'prefetch' }, NOW)).toBe('prefetch')
+    expect(
+      c.classify('203.0.113.9', 'tap|K7Q2M9XA', { ...PHONE, secPurpose: 'prefetch' }, NOW),
+    ).toBe('prefetch')
     // A prefetch does not use up the visitor's real tap.
     expect(c.classify('203.0.113.9', 'tap|K7Q2M9XA', PHONE, NOW + 10)).toBe('count')
   })
@@ -73,11 +82,19 @@ describe('tap and click counting (SEC-11)', () => {
     ])
       expect(isBot(ua), ua).toBe(true)
     expect(isBot(PHONE.userAgent)).toBe(false)
-    expect(createVisitCounter().classify('203.0.113.9', 'tap|K7Q2M9XA', { userAgent: 'WhatsApp/2.23' }, NOW)).toBe('bot')
+    expect(
+      createVisitCounter().classify(
+        '203.0.113.9',
+        'tap|K7Q2M9XA',
+        { userAgent: 'WhatsApp/2.23' },
+        NOW,
+      ),
+    ).toBe('bot')
   })
   it('keeps the dedupe map bounded', () => {
     const c = createVisitCounter()
-    for (let i = 0; i < 10_001; i++) c.classify(`10.0.${i >> 8}.${i & 255}`, 'tap|K7Q2M9XA', PHONE, NOW)
+    for (let i = 0; i < 10_001; i++)
+      c.classify(`10.0.${i >> 8}.${i & 255}`, 'tap|K7Q2M9XA', PHONE, NOW)
     expect(c.size()).toBe(10_001)
     // Once the old entries expire, the next request prunes them.
     c.classify('203.0.113.9', 'tap|K7Q2M9XA', PHONE, NOW + DEDUPE_MS + 1)
@@ -104,20 +121,28 @@ describe('Content-Security-Policy (SEC-12)', () => {
     expect(cspHeader(inlineScriptHashes(html))).toContain(`script-src 'self' ${expected};`)
   })
   it('does not hash external scripts or JSON data blocks', () => {
-    expect(inlineScriptHashes('<script src="/a.js"></script><script type="application/json">{}</script>')).toEqual([])
+    expect(
+      inlineScriptHashes(
+        '<script src="/a.js"></script><script type="application/json">{}</script>',
+      ),
+    ).toEqual([])
   })
 })
 
 describe('poster link for the QR code (SEC-14)', () => {
   const forged = () => 'https://evil.test'
   it('uses the configured site address and ignores the request', () => {
-    expect(posterLink('K7Q2M9XA', 'https://poster.rs-bethesda.test/', false, forged)).toBe('https://poster.rs-bethesda.test/k/K7Q2M9XA')
+    expect(posterLink('K7Q2M9XA', 'https://poster.rs-bethesda.test/', false, forged)).toBe(
+      'https://poster.rs-bethesda.test/k/K7Q2M9XA',
+    )
   })
   it('in production without a site address, shows no QR code instead of trusting the request', () => {
     expect(posterLink('K7Q2M9XA', '', false, forged)).toBeUndefined()
   })
   it('in dev without a site address, uses the request origin', () => {
-    expect(posterLink('K7Q2M9XA', '', true, () => 'http://localhost:3000')).toBe('http://localhost:3000/k/K7Q2M9XA')
+    expect(posterLink('K7Q2M9XA', '', true, () => 'http://localhost:3000')).toBe(
+      'http://localhost:3000/k/K7Q2M9XA',
+    )
   })
 })
 
@@ -151,7 +176,8 @@ describe('password storage (SEC-01)', () => {
     // The old rule was /demo/i.test(password) for every active account.
     const stored = hashPasswordSync(DEMO_PASSWORD)
     expect(await verifyPassword(DEMO_PASSWORD, stored)).toBe(true)
-    for (const pw of ['demo', 'xdemox', 'DEMO123', 'demo1234', 'demo-abc']) expect(await verifyPassword(pw, stored), pw).toBe(false)
+    for (const pw of ['demo', 'xdemox', 'DEMO123', 'demo1234', 'demo-abc'])
+      expect(await verifyPassword(pw, stored), pw).toBe(false)
   })
   it('temporary passwords are random and only their own hash accepts them', async () => {
     const pw = tempPassword()
@@ -166,8 +192,22 @@ describe('password storage (SEC-01)', () => {
 
 describe('user data sent to the browser (SEC-01)', () => {
   it('has a fixed set of fields and no credentials', () => {
-    const out = publicUser({ ...user(), ...({ hash: 'x', salt: 'y', password: 'z' } as object) } as User)
-    expect(Object.keys(out).sort()).toEqual(['email', 'id', 'lastLogin', 'lockedUntil', 'mustChangePassword', 'name', 'role', 'status'])
+    const out = publicUser({
+      ...user(),
+      ...({ hash: 'x', salt: 'y', password: 'z' } as object),
+    } as User)
+    expect(Object.keys(out).sort()).toEqual([
+      'email',
+      'id',
+      'lastLogin',
+      'lockedUntil',
+      'mustChangePassword',
+      'name',
+      'phone',
+      'role',
+      'status',
+      'wa',
+    ])
   })
 })
 
@@ -178,54 +218,84 @@ describe('forced password change (SEC-01)', () => {
       statusMessage: MUST_CHANGE_PASSWORD,
       data: { mustChangePassword: true },
     })
-    expect(accessDenial(user({ mustChangePassword: true, role: 'super' }), 'super')?.statusCode).toBe(403)
+    expect(
+      accessDenial(user({ mustChangePassword: true, role: 'super' }), 'super')?.statusCode,
+    ).toBe(403)
   })
   it('lets the change route through, and everything after the change', () => {
-    expect(accessDenial(user({ mustChangePassword: true }), undefined, { allowPasswordChange: true })).toBeNull()
+    expect(
+      accessDenial(user({ mustChangePassword: true }), undefined, { allowPasswordChange: true }),
+    ).toBeNull()
     expect(accessDenial(user({ mustChangePassword: false }))).toBeNull()
   })
   it('keeps the existing 401 and Super Admin checks', () => {
     expect(accessDenial(null)?.statusCode).toBe(401)
-    expect(accessDenial(user(), 'super')).toEqual({ statusCode: 403, statusMessage: 'Halaman ini khusus Super Admin.' })
+    expect(accessDenial(user(), 'super')).toEqual({
+      statusCode: 403,
+      statusMessage: 'Halaman ini khusus Super Admin.',
+    })
   })
 })
 
 describe('password change input (SEC-01)', () => {
   const err = (body: unknown) => {
     const r = passwordChangeSchema.safeParse(body)
-    return r.success ? null : Object.fromEntries(r.error.issues.map(i => [i.path.join('.'), i.message]))
+    return r.success
+      ? null
+      : Object.fromEntries(r.error.issues.map(i => [i.path.join('.'), i.message]))
   }
   it('needs a new password of at least 10 characters', () => {
-    expect(err({ currentPassword: 'abc', newPassword: 'pendek123' })).toEqual({ newPassword: 'Minimal 10 karakter.' })
+    expect(err({ currentPassword: 'abc', newPassword: 'pendek123' })).toEqual({
+      newPassword: 'Minimal 10 karakter.',
+    })
     expect(err({ currentPassword: 'abc', newPassword: 'cukup-panjang' })).toBeNull()
   })
   it('refuses the same password and unknown fields', () => {
     expect(err({ currentPassword: 'sama-persis-123', newPassword: 'sama-persis-123' })).toEqual({
       newPassword: 'Kata sandi baru harus berbeda dari yang lama.',
     })
-    expect(passwordChangeSchema.safeParse({ currentPassword: 'a', newPassword: 'cukup-panjang', role: 'super' }).success).toBe(false)
+    expect(
+      passwordChangeSchema.safeParse({
+        currentPassword: 'a',
+        newPassword: 'cukup-panjang',
+        role: 'super',
+      }).success,
+    ).toBe(false)
   })
   it('needs the current password', () => {
-    expect(err({ currentPassword: '', newPassword: 'cukup-panjang' })).toEqual({ currentPassword: 'Isian ini wajib diisi.' })
+    expect(err({ currentPassword: '', newPassword: 'cukup-panjang' })).toEqual({
+      currentPassword: 'Isian ini wajib diisi.',
+    })
   })
 })
 
 describe('staging deploy settings', () => {
-  it('seeded accounts use NUXT_SEED_PASSWORD when set, the demo password otherwise', () => {
-    expect(seedPassword(undefined)).toBe(DEMO_PASSWORD)
-    expect(seedPassword('')).toBe(DEMO_PASSWORD)
-    expect(seedPassword('Rahasia-Staging-2026')).toBe('Rahasia-Staging-2026')
+  it('seeded accounts use NUXT_SEED_PASSWORD when set, the demo password otherwise (development only)', () => {
+    expect(seedPassword(undefined, false)).toBe(DEMO_PASSWORD)
+    expect(seedPassword('', false)).toBe(DEMO_PASSWORD)
+    expect(seedPassword('Rahasia-Staging-2026', true)).toBe('Rahasia-Staging-2026')
+  })
+  // Security audit H1: a production build without NUXT_SEED_PASSWORD used to seed the public demo password.
+  it('a production build refuses to start without NUXT_SEED_PASSWORD', () => {
+    expect(() => seedPassword(undefined, true)).toThrow('NUXT_SEED_PASSWORD must be set')
+    expect(() => seedPassword('', true)).toThrow('NUXT_SEED_PASSWORD must be set')
   })
   it('refuses a seed password shorter than the minimum, so the server does not start with a weak one', () => {
-    expect(() => seedPassword('pendek')).toThrow('NUXT_SEED_PASSWORD must be at least 10 characters.')
+    expect(() => seedPassword('pendek', true)).toThrow(
+      'NUXT_SEED_PASSWORD must be at least 10 characters.',
+    )
   })
   // Regression: card URLs were always https://poster.rs-bethesda.test/k/<code>, so written cards led nowhere.
   it('writes cards with the configured site address', () => {
     const forged = () => 'https://evil.test'
-    expect(cardBaseUrl('https://staging.example.co.id/', false, forged, 'https://placeholder.test/k/')).toBe(
-      'https://staging.example.co.id/k/',
+    expect(
+      cardBaseUrl('https://staging.example.co.id/', false, forged, 'https://placeholder.test/k/'),
+    ).toBe('https://staging.example.co.id/k/')
+    expect(
+      cardBaseUrl('', true, () => 'http://localhost:3000', 'https://placeholder.test/k/'),
+    ).toBe('http://localhost:3000/k/')
+    expect(cardBaseUrl('', false, forged, 'https://placeholder.test/k/')).toBe(
+      'https://placeholder.test/k/',
     )
-    expect(cardBaseUrl('', true, () => 'http://localhost:3000', 'https://placeholder.test/k/')).toBe('http://localhost:3000/k/')
-    expect(cardBaseUrl('', false, forged, 'https://placeholder.test/k/')).toBe('https://placeholder.test/k/')
   })
 })

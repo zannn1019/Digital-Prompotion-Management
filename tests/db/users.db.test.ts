@@ -19,11 +19,14 @@ describe.skipIf(!url)('users, passwords and sessions in PostgreSQL', () => {
   let repo: ReturnType<typeof usersRepo>
 
   beforeAll(async () => {
-    if (!/_test\b/.test(url!)) throw new Error('TEST_DATABASE_URL must name a database ending in _test: it is wiped.')
+    if (!/_test\b/.test(url!))
+      throw new Error('TEST_DATABASE_URL must name a database ending in _test: it is wiped.')
     const conn = createDatabase(url!)
     db = conn.db
     close = () => conn.pool.end()
-    await db.execute(sql`drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;`)
+    await db.execute(
+      sql`drop schema if exists public cascade; drop schema if exists drizzle cascade; create schema public;`,
+    )
     await runMigrations(db, resolve(process.cwd(), 'server/db/migrations'))
     await seedDatabase(db, 'Rahasia-Tes-2026')
     repo = usersRepo(db)
@@ -33,7 +36,9 @@ describe.skipIf(!url)('users, passwords and sessions in PostgreSQL', () => {
   it('seeds one Super Admin once, with a hashed password', async () => {
     await seedDatabase(db, 'something-else-2026')
     const all = await repo.list()
-    expect(all.map(u => [u.email, u.role, u.status])).toEqual([['admin@rs-bethesda.test', 'super', 'active']])
+    expect(all.map(u => [u.email, u.role, u.status])).toEqual([
+      ['admin@rs-bethesda.test', 'super', 'active'],
+    ])
     expect(await repo.verifyPassword(all[0]!.id, 'Rahasia-Tes-2026')).toBe(true)
     expect(await repo.verifyPassword(all[0]!.id, 'something-else-2026')).toBe(false)
     const [row] = await db.select().from(credentials)
@@ -48,7 +53,12 @@ describe.skipIf(!url)('users, passwords and sessions in PostgreSQL', () => {
       password: 'Sementara-123',
       mustChangePassword: true,
     })
-    expect(u).toMatchObject({ email: 'dimas@rs-bethesda.test', role: 'staff', status: 'active', mustChangePassword: true })
+    expect(u).toMatchObject({
+      email: 'dimas@rs-bethesda.test',
+      role: 'staff',
+      status: 'active',
+      mustChangePassword: true,
+    })
     expect(await repo.byEmail('DIMAS@rs-bethesda.test')).toMatchObject({ id: u!.id })
     expect(
       await repo.create({
@@ -74,8 +84,16 @@ describe.skipIf(!url)('users, passwords and sessions in PostgreSQL', () => {
   it('saves lock state and last sign-in, and returns them as strings', async () => {
     const u = (await repo.byEmail('dimas@rs-bethesda.test'))!
     const until = new Date(Date.now() + 15 * 60_000).toISOString()
-    await repo.update(u.id, { status: 'locked', lockedUntil: until, lastLogin: new Date('2026-11-13T02:05:00Z') })
-    expect(await repo.byId(u.id)).toMatchObject({ status: 'locked', lockedUntil: until, lastLogin: '2026-11-13 09:05' })
+    await repo.update(u.id, {
+      status: 'locked',
+      lockedUntil: until,
+      lastLogin: new Date('2026-11-13T02:05:00Z'),
+    })
+    expect(await repo.byId(u.id)).toMatchObject({
+      status: 'locked',
+      lockedUntil: until,
+      lastLogin: '2026-11-13 09:05',
+    })
     await repo.update(u.id, { status: 'active', lockedUntil: null })
     expect(await repo.byId(u.id)).toMatchObject({ status: 'active', lockedUntil: null })
   })

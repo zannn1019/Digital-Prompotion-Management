@@ -11,6 +11,9 @@ const file = defineModel<UploadedFile | null>({ required: true })
 defineProps<{ error?: string }>()
 
 const input = ref<HTMLInputElement>()
+// The real file input is hidden and skipped by Tab: keyboard users (and the jump to the first error)
+// land on the visible button instead, which carries the error state.
+const errorId = useId()
 const over = ref(false)
 function onDrop(e: DragEvent) {
   over.value = false
@@ -41,7 +44,11 @@ async function upload(f: File | undefined) {
     <div
       :class="[
         'flex flex-col items-center gap-2 rounded-xl border-2 border-dashed p-7 text-center transition',
-        over ? 'border-primary bg-muted' : localError || error ? 'border-destructive bg-red-50' : 'border-zinc-400',
+        over
+          ? 'border-primary bg-muted'
+          : localError || error
+            ? 'border-destructive bg-red-50'
+            : 'border-zinc-400',
       ]"
       @dragover.prevent="over = true"
       @dragleave="over = false"
@@ -49,30 +56,49 @@ async function upload(f: File | undefined) {
     >
       <Upload class="size-8 text-zinc-700" aria-hidden="true" />
       <b class="text-lg font-semibold">Seret file ke sini</b>
-      <span class="text-[15px] text-muted-foreground">PNG, JPG, WebP, atau PDF · maksimal 5 MB</span>
+      <span class="text-[15px] text-muted-foreground">
+        PNG, JPG, WebP, atau PDF · maksimal 5 MB
+      </span>
       <input
         ref="input"
         type="file"
         class="sr-only"
+        tabindex="-1"
+        aria-hidden="true"
         :accept="UPLOAD.accept"
-        aria-label="Pilih file poster"
-        :aria-invalid="!!(localError || error)"
         @change="upload(($event.target as HTMLInputElement).files?.[0])"
       />
-      <Button type="button" class="mt-1 h-12 px-5 text-base" :disabled="uploading" @click="input?.click()">{{
-        uploading ? 'Mengunggah…' : 'Pilih file dari laptop'
-      }}</Button>
+      <Button
+        type="button"
+        class="mt-1 h-12 px-5 text-base"
+        :disabled="uploading"
+        :aria-invalid="!!(localError || error) || undefined"
+        :aria-describedby="localError || error ? errorId : undefined"
+        @click="input?.click()"
+      >
+        {{ uploading ? 'Mengunggah…' : 'Pilih file dari laptop' }}
+      </Button>
     </div>
-    <p v-if="localError || error" class="text-[15px] font-semibold text-destructive" role="alert">{{ localError || error }}</p>
+    <p
+      v-if="localError || error"
+      :id="errorId"
+      class="text-[15px] font-semibold text-destructive"
+      role="alert"
+    >
+      {{ localError || error }}
+    </p>
     <div v-if="file" class="flex items-center gap-3 rounded-xl border p-3 text-[15px]">
       <img :src="file.previewUrl ?? file.url" alt="" class="h-14 w-11 rounded object-cover" />
       <div class="min-w-0 grow">
         <b class="block truncate font-semibold">{{ file.name }}</b>
-        <span class="text-green-700"
-          ><CircleCheck class="inline size-4" aria-hidden="true" /> {{ fmtBytes(file.size) }} · siap dipakai</span
-        >
+        <span class="text-green-700">
+          <CircleCheck class="inline size-4" aria-hidden="true" />
+          {{ fmtBytes(file.size) }} · siap dipakai
+        </span>
       </div>
-      <Button type="button" variant="outline" class="h-11" @click="input?.click()">Ganti file</Button>
+      <Button type="button" variant="outline" class="h-11" @click="input?.click()">
+        Ganti file
+      </Button>
     </div>
   </div>
 </template>

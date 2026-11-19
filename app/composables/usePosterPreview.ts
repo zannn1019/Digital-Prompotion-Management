@@ -1,13 +1,23 @@
 import type { MaybeRefOrGetter } from 'vue'
 import type { Poster, PublicView, Settings } from '#shared/types'
 
+/** A poster as the previews show it, with its marketing user's name when it has one. */
+export type PreviewPoster = Poster & { contactName?: string }
+
 /** Builds the PublicView the admin phone previews render, from settings plus the posters shown. */
-export function usePosterPreview(input: MaybeRefOrGetter<{ posters: Poster[]; announcements?: Poster[] }>) {
+export function usePosterPreview(
+  input: MaybeRefOrGetter<{ posters: PreviewPoster[]; announcements?: Poster[] }>,
+) {
   const { data: settings } = useFetch<Settings>('/api/settings', { key: 'settings', server: false })
   return computed<PublicView | null>(() => {
     if (!settings.value) return null
     const v = toValue(input)
-    return { kind: 'page', posters: v.posters, announcements: v.announcements ?? [], settings: settings.value }
+    return {
+      kind: 'page',
+      posters: v.posters,
+      announcements: v.announcements ?? [],
+      settings: settings.value,
+    }
   })
 }
 

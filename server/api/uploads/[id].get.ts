@@ -13,13 +13,16 @@ export default defineEventHandler(async event => {
   const file = await (await useUploads()).read(id)
   const viewer = file ? await currentUser(event) : null
   // Someone who still has a temporary password sees only what visitors see.
-  const visible = file && ((viewer && !viewer.mustChangePassword) || (await isPublic(`/api/uploads/${id}`)))
+  const visible =
+    file && ((viewer && !viewer.mustChangePassword) || (await isPublic(`/api/uploads/${id}`)))
   // Same answer for "missing" and "not public yet".
-  if (!file || !visible) throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan.' })
+  if (!file || !visible)
+    throw createError({ statusCode: 404, statusMessage: 'File tidak ditemukan.' })
   setResponseHeaders(event, {
     'Content-Type': file.type,
     // PDFs (brochures) download instead of rendering on our origin.
-    'Content-Disposition': file.type === 'application/pdf' ? 'attachment; filename="brosur.pdf"' : 'inline',
+    'Content-Disposition':
+      file.type === 'application/pdf' ? 'attachment; filename="brosur.pdf"' : 'inline',
     // A file can stop being public (poster unpublished, archived), so shared caches keep it only briefly.
     'Cache-Control': 'private, max-age=3600',
   })

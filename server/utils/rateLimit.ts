@@ -18,6 +18,9 @@ export function rateLimit(event: H3Event, scope: string, limit: number, windowMs
   w.count += 1
   if (w.count > limit) {
     setHeader(event, 'Retry-After', Math.ceil((w.resetAt - now) / 1000))
-    throw createError({ statusCode: 429, statusMessage: 'Terlalu banyak permintaan. Coba lagi sebentar lagi.' })
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Terlalu banyak permintaan. Coba lagi sebentar lagi.',
+    })
   }
 }

@@ -11,11 +11,18 @@ import { fmtDateTime } from '#shared/utils/format'
 definePageMeta({ layout: 'admin', middleware: ['auth', 'canvas-editor'], title: 'Desain poster' })
 
 const { isSuper } = useSession()
-const { data: settings, status } = useFetch<Settings>('/api/settings', { key: 'settings', server: false })
+const { data: settings, status } = useFetch<Settings>('/api/settings', {
+  key: 'settings',
+  server: false,
+})
 const draft = useDesignDraft()
-const backTo = computed(() => (draft.value?.form ? draftReturnPath(draft.value) : '/admin/posters/new'))
+const backTo = computed(() =>
+  draft.value?.form ? draftReturnPath(draft.value) : '/admin/posters/new',
+)
 
-const design = ref<PosterDesign | null>(draft.value?.design ? structuredClone(toRaw(draft.value.design)) : null)
+const design = ref<PosterDesign | null>(
+  draft.value?.design ? structuredClone(toRaw(draft.value.design)) : null,
+)
 const autosaved = import.meta.client ? designAutosave.read() : null
 
 // Built once so the thumbnails keep stable element ids.
@@ -33,7 +40,9 @@ onBeforeRouteLeave(() => {
   if (
     !done &&
     editor.value?.changed &&
-    !window.confirm('Tinggalkan editor? Desain tetap tersimpan di browser ini dan bisa dilanjutkan nanti.')
+    !window.confirm(
+      'Tinggalkan editor? Desain tetap tersimpan di browser ini dan bisa dilanjutkan nanti.',
+    )
   )
     return false
 })
@@ -41,7 +50,10 @@ onBeforeRouteLeave(() => {
 async function onFinish(d: PosterDesign, image: Blob) {
   finishing.value = true
   try {
-    const file = await uploadFile(image, `Desain poster.${image.type === 'image/webp' ? 'webp' : 'png'}`)
+    const file = await uploadFile(
+      image,
+      `Desain poster.${image.type === 'image/webp' ? 'webp' : 'png'}`,
+    )
     draft.value = { ...draft.value, design: d, file }
     designAutosave.clear()
     done = true
@@ -59,9 +71,14 @@ async function onFinish(d: PosterDesign, image: Blob) {
     <AdminPageHeader
       :title="design ? 'Desain poster' : 'Mulai dari mana?'"
       :description="
-        design ? undefined : 'Pilih contoh yang paling mirip, lalu ganti teks dan fotonya. Logo dan kotak Informasi RS sudah terpasang.'
+        design
+          ? undefined
+          : 'Pilih contoh yang paling mirip, lalu ganti teks dan fotonya. Logo dan kotak Informasi RS sudah terpasang.'
       "
-      :back="{ to: backTo, label: draft?.form ? 'Kembali ke formulir poster' : 'Kembali ke pilihan' }"
+      :back="{
+        to: backTo,
+        label: draft?.form ? 'Kembali ke formulir poster' : 'Kembali ke pilihan',
+      }"
     />
 
     <AdminTableSkeleton v-if="status === 'pending' || !settings" :rows="6" />
@@ -86,9 +103,15 @@ async function onFinish(d: PosterDesign, image: Blob) {
         <History class="size-7 shrink-0" aria-hidden="true" />
         <span class="grow">
           <b class="block text-lg font-semibold">Lanjutkan desain terakhir</b>
-          <span class="text-[15px] text-muted-foreground">Belum selesai · disimpan {{ fmtDateTime(autosaved.savedAt) }}</span>
+          <span class="text-[15px] text-muted-foreground">
+            Belum selesai · disimpan {{ fmtDateTime(autosaved.savedAt) }}
+          </span>
         </span>
-        <span class="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-5 text-base font-semibold text-white">Lanjutkan</span>
+        <span
+          class="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-5 text-base font-semibold text-white"
+        >
+          Lanjutkan
+        </span>
       </button>
 
       <section aria-labelledby="starters" class="flex flex-col gap-4">
@@ -101,7 +124,13 @@ async function onFinish(d: PosterDesign, image: Blob) {
             class="flex flex-col gap-3 rounded-2xl border bg-background p-3 text-left transition hover:border-zinc-900 hover:shadow-lg"
             @click="start(s.make())"
           >
-            <DesignCanvas :design="s.preview" :brand="settings" :scale="0.2" readonly class="overflow-hidden rounded-lg" />
+            <DesignCanvas
+              :design="s.preview"
+              :brand="settings"
+              :scale="0.2"
+              readonly
+              class="overflow-hidden rounded-lg"
+            />
             <span>
               <b class="block text-base font-semibold">{{ s.name }}</b>
               <span class="text-sm text-muted-foreground">{{ s.description }}</span>
@@ -113,9 +142,9 @@ async function onFinish(d: PosterDesign, image: Blob) {
         </p>
       </section>
       <div>
-        <Button as-child variant="outline" class="h-12 text-base"
-          ><NuxtLink to="/admin/posters/upload">Saya punya file poster jadi</NuxtLink></Button
-        >
+        <Button as-child variant="outline" class="h-12 text-base">
+          <NuxtLink to="/admin/posters/upload">Saya punya file poster jadi</NuxtLink>
+        </Button>
       </div>
     </div>
   </div>

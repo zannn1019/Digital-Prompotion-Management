@@ -1,20 +1,52 @@
-// Change role, (de)activate, or reset password (which also unlocks).
+// Change role or marketing contact, (de)activate, or reset password (which also unlocks).
 export default defineEventHandler(async event => {
   const me = await requireUser(event, 'super')
   const repo = await useUsers()
   const user = await repo.byId(getRouterParam(event, 'id') ?? '')
   if (!user) throw createError({ statusCode: 404, statusMessage: 'Pengguna tidak ditemukan.' })
-  if (user.id === me.id) throw createError({ statusCode: 422, statusMessage: 'Anda tidak bisa mengubah akun Anda sendiri.' })
-  const { role, status, resetPassword } = await parseBody(event, userPatchSchema)
+  if (user.id === me.id)
+    throw createError({
+      statusCode: 422,
+      statusMessage: 'Anda tidak bisa mengubah akun Anda sendiri.',
+    })
+  const { role, status, resetPassword, wa, phone } = await parseBody(event, userPatchSchema)
+
+  if (wa !== undefined || phone !== undefined) {
+    const next = {
+      wa: wa === undefined ? (user.wa ?? null) : wa || null,
+      phone: phone === undefined ? (user.phone ?? null) : phone || null,
+    }
+    const show = (c: { wa?: string | null; phone?: string | null }) =>
+      `WA ${c.wa || '-'} · Telp ${c.phone || '-'}`
+    if (next.wa !== (user.wa ?? null) || next.phone !== (user.phone ?? null)) {
+      await logAudit(me.id, 'Mengubah kontak', 'Pengguna', user.name, show(user), show(next))
+      await repo.update(user.id, next)
+      Object.assign(user, next)
+    }
+  }
 
   if (role && role !== user.role) {
-    await logAudit(me.id, 'Mengubah peran', 'Pengguna', user.name, ROLE_LABEL[user.role], ROLE_LABEL[role])
+    await logAudit(
+      me.id,
+      'Mengubah peran',
+      'Pengguna',
+      user.name,
+      ROLE_LABEL[user.role],
+      ROLE_LABEL[role],
+    )
     user.role = role
     await repo.update(user.id, { role })
     await destroyUserSessions(user.id)
   }
   if (status && status !== user.status) {
-    await logAudit(me.id, status === 'inactive' ? 'Menonaktifkan' : 'Mengaktifkan', 'Pengguna', user.name, user.status, status)
+    await logAudit(
+      me.id,
+      status === 'inactive' ? 'Menonaktifkan' : 'Mengaktifkan',
+      'Pengguna',
+      user.name,
+      user.status,
+      status,
+    )
     user.status = status
     await repo.update(user.id, { status })
     if (status === 'inactive') await destroyUserSessions(user.id)
@@ -28,6 +60,8 @@ export default defineEventHandler(async event => {
     user.mustChangePassword = true
     await repo.setPassword(user.id, password)
     await repo.update(user.id, { status: user.status, lockedUntil: null, mustChangePassword: true })
+    // Addresses blocked after wrong passwords may sign in again with the temporary password.
+    loginGuard.clear(user.email)
     await destroyUserSessions(user.id)
     await logAudit(me.id, 'Reset sandi', 'Pengguna', user.name, '', 'Sandi sementara dibuat')
     return { user: publicUser(user), tempPassword: password }

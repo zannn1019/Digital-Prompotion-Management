@@ -1,13 +1,26 @@
 import { toast } from 'vue-sonner'
 import type { Card } from '#shared/types'
 
-export type CardRow = Card & { pageName: string | null; writtenByName: string | null; url: string }
+export type CardRow = Card & {
+  pageName: string | null
+  writtenByName: string | null
+  ownerName: string | null
+  url: string
+}
 
 /** Card list plus the bulk actions, shared by the card pages. */
 export function useCards() {
-  const { data, status, refresh } = useFetch<CardRow[]>('/api/cards', { key: 'cards', server: false })
+  const { data, status, refresh } = useFetch<CardRow[]>('/api/cards', {
+    key: 'cards',
+    server: false,
+  })
 
-  async function bulk(action: 'map' | 'deactivate' | 'activate', codes: string[], pageId: string | null = null, pageName = 'Halaman umum') {
+  async function bulk(
+    action: 'map' | 'deactivate' | 'activate',
+    codes: string[],
+    pageId: string | null = null,
+    pageName = 'Halaman umum',
+  ) {
     try {
       await $fetch('/api/cards/bulk', { method: 'POST', body: { action, codes, pageId } })
       await refresh()
@@ -25,5 +38,24 @@ export function useCards() {
     }
   }
 
-  return { cards: data, status, refresh, bulk }
+  /** Hands cards to a marketing user (Super Admin only), or to nobody with null. */
+  async function assignOwner(codes: string[], ownerId: string | null, ownerName?: string) {
+    try {
+      await $fetch('/api/cards/bulk', { method: 'POST', body: { action: 'owner', codes, ownerId } })
+      await refresh()
+      toast.success(
+        ownerId
+          ? `${codes.length} kartu kini milik ${ownerName ?? 'marketing terpilih'}.`
+          : `${codes.length} kartu kini tanpa marketing.`,
+      )
+      return true
+    } catch (e: any) {
+      toast.error(
+        e?.data?.data?.errors?.ownerId ?? e?.data?.statusMessage ?? 'Gagal menyimpan. Coba lagi.',
+      )
+      return false
+    }
+  }
+
+  return { cards: data, status, refresh, bulk, assignOwner }
 }

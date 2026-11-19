@@ -19,6 +19,7 @@ async function save() {
   // Checked here first so a typo in the repeat field doesn't cost a request.
   if (form.newPassword.length >= MIN && form.repeat !== form.newPassword) {
     errors.value = { repeat: 'Belum sama dengan kata sandi baru.' }
+    void focusFirstError()
     return
   }
   saving.value = true
@@ -40,24 +41,41 @@ async function save() {
   <div class="flex min-h-screen items-center justify-center bg-secondary px-4 py-12">
     <main class="w-full max-w-md rounded-xl border bg-background p-8 shadow-sm">
       <div class="mb-6 flex items-center gap-2.5">
-        <img src="/brand/logo.png" alt="RS Bethesda Yogyakarta" width="194" height="44" class="block h-11 w-auto" />
+        <img
+          src="/brand/logo.png"
+          alt="RS Bethesda Yogyakarta"
+          width="194"
+          height="44"
+          class="block h-11 w-auto"
+        />
       </div>
       <h1 class="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <KeyRound class="size-6" aria-hidden="true" />Ganti kata sandi
+        <KeyRound class="size-6" aria-hidden="true" />
+        Ganti kata sandi
       </h1>
       <p class="mt-1.5 mb-5 text-sm text-muted-foreground">
-        <template v-if="user?.mustChangePassword"
-          >Anda masuk dengan kata sandi sementara. Buat kata sandi baru sebelum melanjutkan.</template
-        >
+        <template v-if="user?.mustChangePassword">
+          Anda masuk dengan kata sandi sementara. Buat kata sandi baru sebelum melanjutkan.
+        </template>
         <template v-else>Buat kata sandi baru untuk akun Anda.</template>
       </p>
 
       <form novalidate class="flex flex-col gap-4" @submit.prevent="save">
+        <!-- Tells password managers which account the new password belongs to. -->
+        <input
+          type="email"
+          name="username"
+          autocomplete="username"
+          :value="user?.email"
+          readonly
+          hidden
+        />
         <AdminTextField
           id="currentPassword"
           v-model="form.currentPassword"
           type="password"
           label="Kata sandi saat ini"
+          autocomplete="current-password"
           required
           :error="errors.currentPassword"
         />
@@ -66,12 +84,23 @@ async function save() {
           v-model="form.newPassword"
           type="password"
           label="Kata sandi baru"
+          autocomplete="new-password"
           required
           :hint="`Minimal ${MIN} karakter. Jangan pakai kata sandi sementara.`"
           :error="errors.newPassword"
         />
-        <AdminTextField id="repeat" v-model="form.repeat" type="password" label="Ulangi kata sandi baru" required :error="errors.repeat" />
-        <Button type="submit" class="mt-1 h-11" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan kata sandi' }}</Button>
+        <AdminTextField
+          id="repeat"
+          v-model="form.repeat"
+          type="password"
+          label="Ulangi kata sandi baru"
+          autocomplete="new-password"
+          required
+          :error="errors.repeat"
+        />
+        <Button type="submit" class="mt-1 h-11" :disabled="saving">
+          {{ saving ? 'Menyimpan…' : 'Simpan kata sandi' }}
+        </Button>
         <Button type="button" variant="ghost" class="h-11" @click="logout">Keluar</Button>
       </form>
     </main>
