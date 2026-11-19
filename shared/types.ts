@@ -143,6 +143,23 @@ export interface Settings {
   retentionAudit: number
   retentionTap: number
   baseUrl: string
+  /** The team's standard look for printed NFC cards (the QR code itself is never part of the design). */
+  cardDesign: CardDesign
+}
+
+/** Printed card look: backgrounds and text only. The QR code, its size and its place are fixed. */
+export interface CardDesign {
+  /** Background colour (#rrggbb) and optional uploaded image, front and back. */
+  frontBg: string
+  frontImage: string | null
+  backBg: string
+  backImage: string | null
+  /** Text colour on the card: light text for dark backgrounds, dark text for light ones. */
+  ink: 'light' | 'dark'
+  title: string
+  subtitle: string
+  backCaption: string
+  showLogo: boolean
 }
 
 export interface DailyRow {

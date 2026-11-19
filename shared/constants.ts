@@ -111,6 +111,18 @@ export const ANNOUNCEMENT_LEVEL: Record<
   darurat: { label: 'Darurat', bar: 'bg-brand-red text-white', swatch: 'bg-brand-red' },
 }
 
+/** Printed NFC card: size, A4 layout and text limits. The print page and the card follow these
+ *  numbers; keep cols × widthMm within 210 and rows × heightMm within 297 (A4). */
+export const CARD_PRINT = {
+  widthMm: 90,
+  heightMm: 60,
+  /** Cards per A4 sheet (210 × 297 mm): 2 columns × 4 rows. */
+  cols: 2,
+  rows: 4,
+  perSheet: 8,
+  limits: { title: 40, subtitle: 60, backCaption: 40 },
+}
+
 /** Upload rules (FR-15). The server re-checks them. */
 export const UPLOAD = {
   maxBytes: 5 * 1024 * 1024,

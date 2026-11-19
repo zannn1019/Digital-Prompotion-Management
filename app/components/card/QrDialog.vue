@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Printer } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,11 +24,14 @@ const { copy } = useCopy()
           sama dengan kartu.
         </DialogDescription>
       </DialogHeader>
-      <div class="flex flex-col items-center gap-2 rounded-xl border p-5">
-        <AdminQrPlaceholder :seed="code" :label="`Contoh kode QR untuk ${code}`" />
-        <span class="text-xs text-muted-foreground">
-          Gambar QR ini contoh visual, belum bisa dipindai.
-        </span>
+      <div class="flex flex-col items-center gap-3 rounded-xl border p-5">
+        <PosterQr :value="url" :label="`Kode QR kartu ${code}`" :size="180" />
+        <Button as-child variant="outline" class="h-10">
+          <NuxtLink :to="`/admin/nfc-cards/print?mode=qr&codes=${encodeURIComponent(code)}`">
+            <Printer class="size-4" />
+            Cetak stiker QR
+          </NuxtLink>
+        </Button>
       </div>
       <div
         class="flex items-center gap-2 rounded-lg border bg-secondary py-2 pr-2 pl-3 font-mono text-[13px] break-all"

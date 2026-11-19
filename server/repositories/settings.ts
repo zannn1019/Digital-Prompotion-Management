@@ -23,8 +23,9 @@ export function settingsRepo(db: Database) {
       return db.transaction(async tx => {
         const [row] = await tx.select().from(settings).where(eq(settings.key, KEY)).for('update')
         const current: Settings = { ...DEFAULT_SETTINGS, ...row?.value }
+        // Compared by value, so an unchanged object (the card design) is not reported as changed.
         const changed = (Object.keys(patch) as (keyof Settings)[]).filter(
-          k => patch[k] !== current[k],
+          k => JSON.stringify(patch[k]) !== JSON.stringify(current[k]),
         )
         const next = { ...current, ...patch }
         await tx

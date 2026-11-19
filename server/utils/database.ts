@@ -21,15 +21,23 @@ export function initDatabase() {
   if (instance) return instance
   const url = useRuntimeConfig().databaseUrl
   if (!url) throw new Error('NUXT_DATABASE_URL is not set.')
-  const { db } = createDatabase(url)
+  const { db, pool } = createDatabase(url)
   // Migrations ship with the app: server/db/migrations next to the working directory (also in the Docker image).
-  const ready = runMigrations(db, resolve(process.cwd(), 'server/db/migrations')).then(() =>
-    // A production build makes the first Super Admin choose a new password at the first sign-in,
-    // so the one from the .env file doesn't stay in use.
-    seedDatabase(db, seedPassword(process.env.NUXT_SEED_PASSWORD, !import.meta.dev), {
-      mustChangePassword: !import.meta.dev,
-    }),
-  )
+  const ready = runMigrations(db, resolve(process.cwd(), 'server/db/migrations'))
+    .then(() =>
+      // A production build makes the first Super Admin choose a new password at the first sign-in,
+      // so the one from the .env file doesn't stay in use.
+      seedDatabase(db, seedPassword(process.env.NUXT_SEED_PASSWORD, !import.meta.dev), {
+        mustChangePassword: !import.meta.dev,
+      }),
+    )
+    .catch(err => {
+      // The database was not reachable (e.g. it started after the app): forget this attempt, so the next
+      // request tries again instead of failing until the app is restarted.
+      if (instance?.ready === ready) instance = null
+      void pool.end().catch(() => {})
+      throw err
+    })
   instance = { db, ready }
   return instance
 }
