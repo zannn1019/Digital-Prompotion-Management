@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,8 +24,10 @@ const version = "2.0.0"
 const waitFor = 30 * time.Second
 
 type server struct {
-	w       *writer
-	origins *origins
+	w        *writer
+	origins  *origins
+	quit     chan struct{}
+	quitOnce sync.Once
 }
 
 func localHost(host string) bool {
@@ -53,6 +56,11 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodOptions {
 		rw.WriteHeader(http.StatusNoContent)
+		return
+	}
+	// Settings from Penulis NFC itself (macOS menu): only without an Origin, i.e. never from a website.
+	if r.URL.Path == "/control" {
+		s.control(rw, r, origin)
 		return
 	}
 	// Requests without an Origin come from programs on this computer, which could use the reader directly anyway.
@@ -170,4 +178,25 @@ func listen() ([]net.Listener, error) {
 		list = append(list, l6)
 	}
 	return list, nil
+}
+
+func (s *server) control(rw http.ResponseWriter, r *http.Request, origin string) {
+	if origin != "" || r.Method != http.MethodPost {
+		send(rw, http.StatusForbidden, errorBody("forbidden", "Tidak boleh."))
+		return
+	}
+	var body struct {
+		Action string `json:"action"`
+	}
+	_ = json.NewDecoder(io.LimitReader(r.Body, 1024)).Decode(&body)
+	switch body.Action {
+	case "quit":
+		send(rw, http.StatusOK, map[string]any{"ok": true})
+		s.stop()
+	case "forget-sites":
+		s.origins.clearAll()
+		send(rw, http.StatusOK, map[string]any{"ok": true})
+	default:
+		send(rw, http.StatusBadRequest, errorBody("bad_request", "Perintah tidak dikenal."))
+	}
 }

@@ -12,7 +12,8 @@ import {
   countsAsFailedWrite,
   helperPlatform,
   setupSteps,
-  trayPlace,
+  deniedHelp,
+  runningHint,
   writerErrorMessage,
   type HelperPlatform,
   type ReadSuccess,
@@ -172,11 +173,10 @@ const headline = computed(() => {
 const subline = computed(() => {
   if (helper.value === 'checking') return ''
   if (helper.value === 'offline')
-    return `Halaman ini belum tersambung ke Penulis NFC. Bila programnya sudah berjalan (ikonnya di ${trayPlace(platform.value)}), izinkan akses perangkat lokal di Chrome lalu muat ulang halaman.`
+    return `Halaman ini belum tersambung ke Penulis NFC. Pastikan programnya berjalan (${runningHint(platform.value)}), izinkan akses perangkat lokal di Chrome, lalu muat ulang halaman.`
   if (helper.value === 'asking')
     return 'Klik Izinkan di jendela “Penulis NFC · Izinkan situs?” di layar komputer ini.'
-  if (helper.value === 'denied')
-    return `Klik ikon Penulis NFC di ${trayPlace(platform.value)} → Situs yang diizinkan → Tanya lagi situs yang ditolak, lalu muat ulang halaman ini.`
+  if (helper.value === 'denied') return deniedHelp(platform.value)
   if (helper.value === 'no-reader')
     return 'Penulis NFC sudah aktif. Colokkan ACR122U ke port USB komputer ini.'
   if (nfc.working.value === 'read') return 'Isinya ditampilkan di bawah tanpa mengubah kartu.'

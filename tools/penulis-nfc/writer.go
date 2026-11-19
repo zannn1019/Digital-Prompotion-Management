@@ -3,12 +3,11 @@ package main
 // Waits for a card on the reader and runs one operation on it. One operation at a time.
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/ebfe/scard"
 )
 
 type writer struct {
@@ -34,15 +33,15 @@ func (w *writer) status() map[string]any {
 	if err != nil {
 		return s
 	}
-	defer ctx.Release()
-	readers := listReaders(ctx)
+	defer ctx.release()
+	readers := ctx.readers()
 	s["service"] = true
 	if readers != nil {
 		s["readers"] = readers
 	}
 	if r := pickReader(readers); r != "" {
 		s["reader"] = r
-		state, _ := readerState(ctx, r)
+		state, _ := ctx.state(r)
 		s["card"] = cardPresent(state)
 	}
 	return s
@@ -73,54 +72,53 @@ func withCard[T any](w *writer, skipUID string, timeout time.Duration, op func(t
 	if err != nil {
 		return zero, err
 	}
-	defer ctx.Release()
-	reader := pickReader(listReaders(ctx))
+	defer ctx.release()
+	reader := pickReader(ctx.readers())
 	if reader == "" {
 		return zero, fail("no_reader", msgNoReader)
 	}
 	w.waiting.Store("card")
 	logf("wait for card on %s (skip %q)", reader, skipUID)
 	deadline := time.Now().Add(timeout)
-	var lastState scard.StateFlag
-	var lastErr error
+	var lastState, lastRC uint32
 	for {
 		if w.cancelled.Load() {
 			return zero, fail("cancelled", "Dibatalkan.")
 		}
 		if time.Now().After(deadline) {
-			logf("timeout; last state %X, last connect %v", lastState, lastErr)
-			if lastErr != nil {
-				return zero, fail("timeout", "Kartu terdeteksi tetapi tidak bisa dibuka ("+lastErr.Error()+"). Angkat kartu, tempelkan lagi di tengah pembaca, lalu coba lagi.")
+			logf("timeout; last state %X, last connect %08X", lastState, lastRC)
+			if lastRC != scardOK {
+				return zero, fail("timeout", fmt.Sprintf("Kartu terdeteksi tetapi tidak bisa dibuka (%08X). Angkat kartu, tempelkan lagi di tengah pembaca, lalu coba lagi.", lastRC))
 			}
 			return zero, fail("timeout", "Tidak ada kartu yang ditempelkan. Coba lagi.")
 		}
-		state, atr := readerState(ctx, reader)
+		state, atr := ctx.state(reader)
 		if state != lastState {
 			logf("reader state %X atr %s", state, hexUpper(atr))
 			lastState = state
 		}
-		if state == 0 && !contains(listReaders(ctx), reader) {
+		if state == 0 && !contains(ctx.readers(), reader) {
 			return zero, fail("no_reader", "Pembaca NFC dicabut. Colokkan lagi, lalu coba lagi.")
 		}
 		if cardPresent(state) {
-			card, err := ctx.Connect(reader, scard.ShareShared, scard.ProtocolAny)
-			if err == scard.ErrSharingViolation {
+			card, rc := ctx.connect(reader)
+			switch {
+			case rc == scardSharingViolation:
 				return zero, fail("reader_in_use", "Pembaca sedang dipakai program lain. Tutup program NFC lain, lalu coba lagi.")
-			}
-			if err != nil {
-				if lastErr == nil || lastErr.Error() != err.Error() {
-					logf("connect %v", err)
+			case rc != scardOK:
+				if rc != lastRC {
+					logf("connect %08X", rc)
 				}
-				lastErr = err
-			} else {
-				lastErr = nil
+				lastRC = rc
+			default:
+				lastRC = scardOK
 				c := &conn{card: card}
 				uid, err := c.uid()
 				switch {
 				case err != nil && errCode(err) == "card_removed":
 					// Pulled away while being identified: keep waiting for it.
 				case err != nil:
-					card.Disconnect(scard.LeaveCard)
+					card.disconnect()
 					return zero, err
 				case skipUID != "" && strings.EqualFold(uid, skipUID):
 					w.waiting.Store("remove_previous")
@@ -128,17 +126,17 @@ func withCard[T any](w *writer, skipUID string, timeout time.Duration, op func(t
 					w.waiting.Store("")
 					t, err := openTag(c, atr)
 					if err != nil {
-						card.Disconnect(scard.LeaveCard)
+						card.disconnect()
 						return zero, err
 					}
 					result, err := op(t)
-					card.Disconnect(scard.LeaveCard)
+					card.disconnect()
 					if err != nil {
 						logf("error %s: %s", errCode(err), err.Error())
 					}
 					return result, err
 				}
-				card.Disconnect(scard.LeaveCard)
+				card.disconnect()
 			}
 		} else if w.waitingFor() == "remove_previous" {
 			w.waiting.Store("card")
@@ -156,21 +154,4 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	var b []byte
-	for n > 0 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-		n /= 10
-	}
-	if neg {
-		return "-" + string(b)
-	}
-	return string(b)
-}
+func itoa(n int) string { return fmt.Sprint(n) }

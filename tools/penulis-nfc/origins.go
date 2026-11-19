@@ -103,6 +103,15 @@ func (o *origins) remove(origin string) {
 	o.save()
 }
 
+// clearAll removes every allowed site.
+func (o *origins) clearAll() {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.allowed = map[string]bool{}
+	o.denied = map[string]bool{}
+	o.save()
+}
+
 // forgetDenied lets a site refused in this session ask again.
 func (o *origins) forgetDenied() {
 	o.mu.Lock()

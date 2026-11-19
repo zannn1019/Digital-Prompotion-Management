@@ -17,9 +17,18 @@ export const HELPER_DOWNLOADS: Record<HelperPlatform, { href: string; file: stri
   mac: { href: '/downloads/PenulisNFC-mac.zip', file: 'PenulisNFC-mac.zip' },
 }
 
-/** Where the helper's icon is, in a sentence. */
-export function trayPlace(p: HelperPlatform): string {
-  return p === 'mac' ? 'bilah menu (kanan atas layar)' : 'taskbar (dekat jam)'
+/** How to tell the helper is running: a tray icon on Windows; on macOS it has no icon. */
+export function runningHint(p: HelperPlatform): string {
+  return p === 'mac'
+    ? 'buka Penulis NFC dari folder Applications'
+    : 'ikonnya ada di taskbar, dekat jam'
+}
+
+/** How to let a refused site ask again. */
+export function deniedHelp(p: HelperPlatform): string {
+  return p === 'mac'
+    ? 'Buka Penulis NFC lagi dari folder Applications → Hapus izin semua situs, lalu muat ulang halaman ini.'
+    : 'Klik ikon Penulis NFC di taskbar → Situs yang diizinkan → Tanya lagi situs yang ditolak, lalu muat ulang halaman ini.'
 }
 
 /** One-time setup on this computer. */
@@ -28,7 +37,7 @@ export function setupSteps(p: HelperPlatform): string[] {
   return p === 'mac'
     ? [
         'Unduh PenulisNFC-mac.zip, buka, lalu pindahkan Penulis NFC ke folder Applications.',
-        'Buka Penulis NFC. Bila macOS menolak membukanya, buka System Settings → Privacy & Security, lalu klik Open Anyway.',
+        'Buka Penulis NFC. Bila macOS menolak membukanya, buka System Settings → Privacy & Security, lalu klik Open Anyway. Penulis NFC berjalan di latar belakang, tanpa ikon.',
         'Colokkan pembaca ACR122U ke USB. Pakai Chrome atau Edge (bukan Safari).',
         last,
       ]

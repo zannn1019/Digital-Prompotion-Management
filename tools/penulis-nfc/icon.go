@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 // The tray icon, drawn in code: a navy rounded square with white contactless waves. Windows wants ICO

@@ -1,14 +1,46 @@
 package main
 
-// The system smart-card service (PC/SC): winscard.dll on Windows, PCSC.framework on macOS. The ACR122U uses
-// the system's CCID driver, so nothing else is needed (on some Macs, the free ACS driver).
+// The system smart-card service (PC/SC): winscard.dll on Windows (pcsc_windows.go), PCSC.framework on macOS
+// (pcsc_darwin.go, loaded at run time so the Mac app builds without Apple's toolchain). The ACR122U uses the
+// system's CCID driver (on some Macs, the free ACS driver).
 
 import (
 	"fmt"
 	"strings"
-
-	"github.com/ebfe/scard"
 )
+
+// PC/SC return codes and reader state flags (the same values on Windows and macOS).
+const (
+	scardOK               = 0x00000000
+	scardTimeout          = 0x8010000A
+	scardSharingViolation = 0x8010000B
+	scardNoSmartcard      = 0x8010000C
+	scardUnresponsiveCard = 0x80100066
+	scardResetCard        = 0x80100068
+	scardRemovedCard      = 0x80100069
+	scardInternalError    = 0x80100001
+	stateUnaware          = 0x0000
+	statePresent          = 0x0020
+	stateMute             = 0x0200
+	shareShared           = 2
+	protocolAny           = 3 // T0 | T1
+	dispositionLeave      = 0
+	dispositionReset      = 1
+)
+
+// pcContext and pcCard are the few PC/SC calls the helper needs, per system.
+type pcContext interface {
+	release()
+	readers() []string
+	state(reader string) (flags uint32, atr []byte)
+	connect(reader string) (pcCard, uint32)
+}
+
+type pcCard interface {
+	transmit(apdu []byte) ([]byte, uint32)
+	reconnect() uint32
+	disconnect()
+}
 
 // nfcError is a failure the admin page shows: a code for the page's logic and an Indonesian message.
 type nfcError struct{ Code, Msg string }
@@ -28,20 +60,12 @@ const msgNoReader = "Pembaca NFC (ACR122U) tidak terdeteksi. Colokkan ke USB kom
 const msgRemoved = "Kartu bergeser atau diangkat sebelum selesai."
 
 // openContext opens the smart-card service. Windows only runs it while a reader is plugged in.
-func openContext() (*scard.Context, error) {
-	ctx, err := scard.EstablishContext()
-	if err != nil {
+func openContext() (pcContext, error) {
+	ctx, rc := establish()
+	if rc != scardOK || ctx == nil {
 		return nil, fail("no_reader", msgNoReader)
 	}
 	return ctx, nil
-}
-
-func listReaders(ctx *scard.Context) []string {
-	r, err := ctx.ListReaders()
-	if err != nil {
-		return nil
-	}
-	return r
 }
 
 // pickReader prefers an ACS ACR122U, then any reader named PICC or NFC, then the first.
@@ -63,32 +87,22 @@ func pickReader(readers []string) string {
 	return ""
 }
 
-// readerState is the reader's state flags and the ATR of the card on it, right now.
-func readerState(ctx *scard.Context, reader string) (scard.StateFlag, []byte) {
-	rs := []scard.ReaderState{{Reader: reader, CurrentState: scard.StateUnaware}}
-	if err := ctx.GetStatusChange(rs, 0); err != nil && err != scard.ErrTimeout {
-		return 0, nil
-	}
-	return rs[0].EventState, rs[0].Atr
-}
-
-func cardPresent(state scard.StateFlag) bool {
-	return state&scard.StatePresent != 0 && state&scard.StateMute == 0
+func cardPresent(state uint32) bool {
+	return state&statePresent != 0 && state&stateMute == 0
 }
 
 // conn is one connected card, sending the ACR122U's PC/SC pseudo-APDUs.
-type conn struct{ card *scard.Card }
+type conn struct{ card pcCard }
 
 func (c *conn) transmit(apdu []byte) ([]byte, error) {
-	r, err := c.card.Transmit(apdu)
-	if err != nil {
-		switch err {
-		case scard.ErrRemovedCard, scard.ErrNoSmartcard, scard.ErrUnresponsiveCard, scard.ErrResetCard:
-			return nil, fail("card_removed", msgRemoved)
-		}
-		return nil, fail("io", fmt.Sprintf("Pembaca tidak menjawab (%v).", err))
+	r, rc := c.card.transmit(apdu)
+	switch rc {
+	case scardOK:
+		return r, nil
+	case scardRemovedCard, scardNoSmartcard, scardUnresponsiveCard, scardResetCard:
+		return nil, fail("card_removed", msgRemoved)
 	}
-	return r, nil
+	return nil, fail("io", fmt.Sprintf("Pembaca tidak menjawab (%08X).", rc))
 }
 
 // command sends an APDU and returns its data when the card answers 90 00.
@@ -118,7 +132,7 @@ func (c *conn) uid() (string, error) {
 
 // wake re-activates a card that halted (a MIFARE Classic card does after a wrong key).
 func (c *conn) wake() error {
-	if err := c.card.Reconnect(scard.ShareShared, scard.ProtocolAny, scard.ResetCard); err != nil {
+	if rc := c.card.reconnect(); rc != scardOK {
 		return fail("card_removed", msgRemoved)
 	}
 	return nil

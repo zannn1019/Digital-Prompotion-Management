@@ -5,6 +5,7 @@ go 1.27.4
 require (
 	fyne.io/systray v1.12.2
 	github.com/ebfe/scard v0.0.0-20241214075232-7af069cabc25
+	github.com/ebitengine/purego v0.11.3
 	github.com/ncruces/zenity v0.10.15
 	golang.org/x/sys v0.50.0
 )

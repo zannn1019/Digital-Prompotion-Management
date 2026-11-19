@@ -3,8 +3,10 @@ import {
   HELPER_DOWNLOADS,
   cardForUrl,
   countsAsFailedWrite,
+  deniedHelp,
   helperPlatform,
   helperState,
+  runningHint,
   setupSteps,
   writerErrorMessage,
   type HelperStatus,
@@ -95,5 +97,16 @@ describe('which helper to offer', () => {
     expect(setupSteps('windows').join(' ')).toMatch(/Run anyway/)
     for (const p of ['mac', 'windows'] as const)
       expect(setupSteps(p).at(-1)).toMatch(/Izinkan situs/)
+  })
+})
+
+describe('helper wording per system', () => {
+  // The Mac app has no menu-bar icon: it is reached by opening it again.
+  it('points Mac users to the app itself and Windows users to the tray icon', () => {
+    expect(runningHint('mac')).toMatch(/Applications/)
+    expect(runningHint('windows')).toMatch(/taskbar/)
+    expect(deniedHelp('mac')).toMatch(/Hapus izin semua situs/)
+    expect(deniedHelp('windows')).toMatch(/Tanya lagi situs yang ditolak/)
+    expect(setupSteps('mac').join(' ')).toMatch(/tanpa ikon/)
   })
 })
