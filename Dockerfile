@@ -2,7 +2,9 @@
 # Stage 1 builds and tests; stage 2 runs only the self-contained .output folder.
 
 # ---- Build ----------------------------------------------------------------
-FROM node:24-bookworm-slim AS build
+# Alpine like the run stage: native packages (sharp, for image uploads) must be installed for musl,
+# since .output carries the binaries that were installed here.
+FROM node:24-alpine AS build
 WORKDIR /app
 
 # Dependencies first, so they are cached while only the source changes.

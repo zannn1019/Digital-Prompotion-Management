@@ -1,7 +1,8 @@
 import { UPLOAD } from '#shared/constants'
 
 // Upload: the bytes go to disk (NUXT_UPLOAD_DIR), the details to the database; served from /api/uploads/:id.
-// Not built yet: converting PDFs to an image and resizing to WebP.
+// Images are resized and stored as WebP (server/utils/compressImage.ts); PDFs are stored as they came.
+// Not built yet: converting PDFs to an image.
 // The request size is already capped by server/middleware/security.ts before the body is read.
 const MAX_BYTES = UPLOAD.maxBytes
 
@@ -40,10 +41,29 @@ export default defineEventHandler(async event => {
       .replace(/^.*[\\/]/, '')
       .replace(/[^\p{L}\p{N} ._()-]/gu, '')
       .slice(0, 120) || 'poster'
+  const stored = await compressImage(file.data, type)
+  const storedName = stored.compressed ? renameForType(name, stored.type) : name
   // Saved under a random 128-bit ID, so upload addresses can't be guessed or counted through.
-  const { id } = await (await useUploads()).save({ data: file.data, type, name, userId: user.id })
+  const repo = await useUploads()
+  const { id } = await repo.save({
+    data: stored.data,
+    type: stored.type,
+    name: storedName,
+    userId: user.id,
+  })
   const url = `/api/uploads/${id}`
+  console.info(
+    `[upload] ${id} ${type} ${file.data.length} B → ${stored.type} ${stored.data.length} B` +
+      (stored.compressed ? ` (${stored.width}×${stored.height})` : ` (kept: ${stored.reason})`),
+  )
   // A PDF poster needs an image for the page; converting its first page is not built yet.
-  const previewUrl = type === 'application/pdf' ? '/dummy/pdf-placeholder.svg' : url
-  return { url, previewUrl, type, name, size: file.data.length }
+  const previewUrl = stored.type === 'application/pdf' ? '/dummy/pdf-placeholder.svg' : url
+  return {
+    url,
+    previewUrl,
+    type: stored.type,
+    name: storedName,
+    size: stored.data.length,
+    originalSize: file.data.length,
+  }
 })

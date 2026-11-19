@@ -27,7 +27,8 @@ export function cspHeader(scriptHashes: string[] = []): string {
     ["script-src 'self'", ...scriptHashes].join(' '),
     // The build inlines small font files as data: URIs.
     "font-src 'self' data:",
-    "connect-src 'self'",
+    // The Penulis NFC helper on the writing PC (app/utils/nfcWriter.ts HELPER_URL).
+    "connect-src 'self' http://localhost:47811",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
