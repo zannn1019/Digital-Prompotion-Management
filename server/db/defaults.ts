@@ -19,4 +19,15 @@ export const DEFAULT_SETTINGS: Settings = {
   retentionAudit: 365,
   retentionTap: 730,
   baseUrl: 'https://poster.rs-bethesda.test/k/',
+  cardDesign: {
+    frontBg: '#2F318B',
+    frontImage: null,
+    backBg: '#2F318B',
+    backImage: null,
+    ink: 'light',
+    title: 'Info & Promo RS Bethesda',
+    subtitle: 'Tempelkan HP atau pindai kode QR',
+    backCaption: 'Tempelkan HP di sini',
+    showLogo: true,
+  },
 }

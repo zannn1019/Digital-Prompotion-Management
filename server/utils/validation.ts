@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { z } from 'zod'
 import { MAX_ELEMENTS, MAX_FONT, MIN_FONT } from '#shared/design'
-import { POSTER_LIMITS } from '#shared/constants'
+import { CARD_PRINT, POSTER_LIMITS } from '#shared/constants'
 import { today, addDays, daysBetween, fmtDate } from '#shared/utils/format'
 import { MIN_PASSWORD_LENGTH } from './passwords'
 
@@ -276,6 +276,23 @@ const https = z
   .trim()
   .regex(/^https:\/\/[^\s]+\.[^\s]+$/, 'Alamat tautan harus diawali https://')
   .max(300)
+/** Card background images: only images uploaded to this app (not PDFs). */
+const cardImage = ownFile.nullable()
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Pilih warna yang valid.')
+export const cardDesignSchema = z
+  .object({
+    frontBg: hexColor,
+    frontImage: cardImage,
+    backBg: hexColor,
+    backImage: cardImage,
+    ink: z.enum(['light', 'dark']),
+    title: text(CARD_PRINT.limits.title),
+    subtitle: text(CARD_PRINT.limits.subtitle),
+    backCaption: text(CARD_PRINT.limits.backCaption),
+    showLogo: z.boolean(),
+  })
+  .strict()
+
 export const settingsSchema = z
   .object({
     company: requiredText(80),
@@ -290,6 +307,7 @@ export const settingsSchema = z
     brochure: https,
     retentionAudit: z.union([z.literal(90), z.literal(180), z.literal(365), z.literal(730)]),
     retentionTap: z.union([z.literal(365), z.literal(730)]),
+    cardDesign: cardDesignSchema,
   })
   .partial()
   .strict()

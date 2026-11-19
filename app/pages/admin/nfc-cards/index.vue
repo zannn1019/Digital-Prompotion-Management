@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Ellipsis, Nfc, Plus, Power, PowerOff, QrCode, UserRound } from '@lucide/vue'
+import { Ellipsis, Nfc, Plus, Power, PowerOff, Printer, QrCode, UserRound } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -54,6 +54,8 @@ const unwritten = computed(() => (cards.value ?? []).filter(c => c.writeStatus !
 
 // ---- Selection -----------------------------------------------------------
 const selected = ref<string[]>([])
+const printLink = (codes: string[]) =>
+  `/admin/nfc-cards/print?codes=${codes.map(encodeURIComponent).join(',')}`
 const allChecked = computed(
   () => rows.value.length > 0 && rows.value.every(r => selected.value.includes(r.code)),
 )
@@ -152,6 +154,12 @@ function exportCsv() {
           </span>
         </NuxtLink>
       </Button>
+      <Button as-child variant="outline" class="h-11">
+        <NuxtLink to="/admin/nfc-cards/print">
+          <Printer class="size-4" />
+          Cetak Label
+        </NuxtLink>
+      </Button>
       <Button v-if="isSuper" class="h-11" @click="registerOpen = true">
         <Plus class="size-4" />
         Daftarkan kartu
@@ -209,6 +217,13 @@ function exportCsv() {
         class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
       >
         <NuxtLink to="/admin/nfc-cards/write">Tulis ke kartu</NuxtLink>
+      </Button>
+      <Button
+        as-child
+        variant="outline"
+        class="h-10 border-zinc-600 bg-transparent text-white hover:bg-white/10 hover:text-white"
+      >
+        <NuxtLink :to="printLink(selected)">Cetak…</NuxtLink>
       </Button>
       <Button
         v-if="isSuper"
@@ -324,6 +339,12 @@ function exportCsv() {
                     <DropdownMenuItem class="min-h-11" @select="qrCard = c">
                       <QrCode class="size-4" />
                       QR cadangan
+                    </DropdownMenuItem>
+                    <DropdownMenuItem as-child class="min-h-11">
+                      <NuxtLink :to="printLink([c.code])">
+                        <Printer class="size-4" />
+                        Cetak Label
+                      </NuxtLink>
                     </DropdownMenuItem>
                     <template v-if="isSuper">
                       <DropdownMenuItem class="min-h-11" @select="openOwner([c.code], c.ownerId)">
@@ -471,6 +492,12 @@ function exportCsv() {
                       <DropdownMenuItem class="min-h-11" @select="qrCard = c">
                         <QrCode class="size-4" />
                         QR cadangan
+                      </DropdownMenuItem>
+                      <DropdownMenuItem as-child class="min-h-11">
+                        <NuxtLink :to="printLink([c.code])">
+                          <Printer class="size-4" />
+                          Cetak Label
+                        </NuxtLink>
                       </DropdownMenuItem>
                       <template v-if="isSuper">
                         <DropdownMenuItem class="min-h-11" @select="openOwner([c.code], c.ownerId)">
