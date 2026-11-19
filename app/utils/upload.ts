@@ -4,7 +4,10 @@ import { fmtBytes } from '#shared/utils/format'
 export interface UploadedFile {
   url: string
   name: string
+  /** Stored size: images are resized and saved as WebP on the server. */
   size: number
+  /** Size of the file as it was sent. */
+  originalSize?: number
   /** Image to show for the file (a placeholder for PDFs). */
   previewUrl?: string
   type?: string

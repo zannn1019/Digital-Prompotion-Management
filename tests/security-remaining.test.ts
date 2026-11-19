@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { User } from '#shared/types'
 import { DEDUPE_MS, createVisitCounter, isBot, isPrefetch } from '../server/utils/tapCounter'
 import { cspHeader, inlineScriptHashes } from '../server/utils/csp'
+import { HELPER_URL } from '../app/utils/nfcWriter'
 import {
   DEMO_PASSWORD,
   hashPassword,
@@ -119,6 +120,13 @@ describe('Content-Security-Policy (SEC-12)', () => {
     const expected = `'sha256-${createHash('sha256').update(config).digest('base64')}'`
     expect(inlineScriptHashes(html)).toEqual([expected])
     expect(cspHeader(inlineScriptHashes(html))).toContain(`script-src 'self' ${expected};`)
+  })
+  // The card writer page calls the Penulis NFC helper on the PC; nothing else outside the site.
+  it('lets pages call only this site and the local Penulis NFC helper', () => {
+    const connect = cspHeader()
+      .split('; ')
+      .find(d => d.startsWith('connect-src'))
+    expect(connect).toBe(`connect-src 'self' ${HELPER_URL}`)
   })
   it('does not hash external scripts or JSON data blocks', () => {
     expect(

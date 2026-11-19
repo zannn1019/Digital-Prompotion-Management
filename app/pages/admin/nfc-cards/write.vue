@@ -157,6 +157,9 @@ const headline = computed(() => {
   return 'Siap menulis'
 })
 const subline = computed(() => {
+  if (helper.value === 'checking') return ''
+  if (helper.value === 'offline')
+    return 'Halaman ini belum tersambung ke Penulis NFC. Bila programnya sudah berjalan (ikon di taskbar), izinkan akses perangkat lokal di Chrome lalu muat ulang halaman.'
   if (helper.value === 'asking')
     return 'Klik Yes di jendela “Penulis NFC · Izinkan situs?” di layar komputer ini.'
   if (helper.value === 'denied')
