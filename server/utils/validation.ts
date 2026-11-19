@@ -244,7 +244,12 @@ export const cardBulkSchema = z
   .strict()
 
 export const cardWriteSchema = z
-  .object({ ok: z.boolean(), locked: z.boolean().optional() })
+  .object({
+    ok: z.boolean(),
+    locked: z.boolean().optional(),
+    /** Why a write failed (from the NFC writer), for the audit log. */
+    reason: z.string().trim().max(200).optional(),
+  })
   .strict()
 
 export const userCreateSchema = z

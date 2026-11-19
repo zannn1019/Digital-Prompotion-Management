@@ -65,7 +65,7 @@ app/components/admin/     admin building blocks: TextField, NativeSelect, Confir
 app/components/card/      Kartu NFC dialogs (map, register, QR)
 app/components/poster/    PosterView, PosterDetail, ContactLink, PosterQr — shared by /k and the admin previews
 app/components/ui/        shadcn-vue components (generated, not hand-edited)
-app/composables/          useSession, useCards, useWebNfc, useDirtyGuard, usePosterPreview…
+app/composables/          useSession, useCards, useNfcWriter, useDirtyGuard, usePosterPreview…
 server/api/               dummy REST API — replace these handlers with the real backend
 server/middleware/        security headers + same-origin check for API writes
 server/routes/go/         click logger + redirect (targets come from Settings only)
@@ -146,7 +146,14 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 
 ## NFC writing
 
-`/admin/nfc/write` writes card URLs with Web NFC. That only works in **Chrome on Android over https**. Elsewhere the page explains why and offers a simulation, so the flow can be demoed on a laptop.
+Cards are written on a Windows PC with a USB NFC reader (ACS **ACR122U**), from **Kartu NFC → Tulis ke kartu** (`/admin/nfc-cards/write`). A browser can't reach a USB reader by itself, so a small tray program, **Penulis NFC** (`tools/penulis-nfc`), runs on that PC:
+
+- It uses the reader through the normal Windows smart-card service (`winscard.dll`); no driver change.
+- It listens on `http://localhost:47811` only. Each website must be allowed once, in a Windows dialog; allowed sites are kept in `%APPDATA%\PenulisNFC\situs-diizinkan.txt` and can be removed from the tray icon's menu.
+- `POST /write` waits for a card, writes the address as an NDEF URI record (NTAG213/215/216), reads it back, and locks the card if asked (static lock bits plus a read-only capability container; addresses over 48 bytes are left unlocked). It skips the card it just wrote, so a card left on the reader is never overwritten by the next one. `POST /read` shows what is on a card; `GET /status` reports the reader and card.
+- Build it with `tools\penulis-nfc\build.cmd` (uses the C# compiler that ships with Windows and runs the NDEF self-test first). The output, `public/downloads/PenulisNFC.exe`, is offered for download on the writer page. It is not code-signed, so Windows SmartScreen warns on first run (More info → Run anyway).
+
+Phones no longer write cards (the Web NFC writer was removed).
 
 ## Not done yet (dummy only)
 
@@ -158,5 +165,5 @@ npm run video:render    # with video:dev running: writes video/demo-poster-nfc.m
 - Automatic off-server copies of the backups (DEPLOY.md step 11 shows the backup, a daily cron job and the restore). A basic health check exists: `GET /api/health` answers `{"ok":true}` (used by Docker).
 - Converting PDF posters to an image (a placeholder is shown) and resizing uploads to WebP.
 - Real contact details: the WhatsApp number, phone and email in Settings are placeholders.
-- A real, scannable QR code in the admin Kartu NFC screens (`AdminQrPlaceholder` is a visual stand-in; the public page already uses `PosterQr`).
+- Code-signing PenulisNFC.exe, so Windows does not warn on first run.
 - Canvas editor: snapping guides, double-click text editing on the canvas, and a contrast check (only the text-size check exists).

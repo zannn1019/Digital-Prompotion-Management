@@ -17,3 +17,5 @@ dist
 video-render.log
 
 .agents/skills
+# Penulis NFC build scratch (the .exe itself goes to public/downloads)
+/tools/penulis-nfc/bin/
