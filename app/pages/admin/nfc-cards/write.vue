@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Card writing station: the USB NFC reader (ACR122U) on this PC, through the Penulis NFC helper.
+// Card writing station: the USB NFC reader (ACR122U) on this Windows PC or Mac, through the Penulis NFC helper.
 // Left: the reader as it is now and the one action that matters. Right: the queue and this session.
 import { Download, Lock, Nfc, RotateCw, ScanLine, X } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -7,10 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { fmtDateTime } from '#shared/utils/format'
 import {
-  HELPER_DOWNLOAD,
+  HELPER_DOWNLOADS,
   cardForUrl,
   countsAsFailedWrite,
+  helperPlatform,
+  setupSteps,
+  trayPlace,
   writerErrorMessage,
+  type HelperPlatform,
   type ReadSuccess,
   type WriteSuccess,
 } from '~/utils/nfcWriter'
@@ -22,6 +26,15 @@ const nfc = useNfcWriter()
 const helper = nfc.state
 const ready = computed(() => helper.value === 'ready')
 const cardOnReader = computed(() => !!nfc.status.value?.card)
+
+// Windows or Mac: which helper to offer and how to describe it. Known only in the browser.
+const platform = ref<HelperPlatform>('windows')
+onMounted(() => {
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+  platform.value = helperPlatform(navigator.userAgent, nav.userAgentData?.platform)
+})
+const download = computed(() => HELPER_DOWNLOADS[platform.value])
+const steps = computed(() => setupSteps(platform.value))
 
 const all = computed(() => data.value ?? [])
 const pending = computed(() => all.value.filter(c => c.writeStatus !== 'sudah'))
@@ -159,11 +172,11 @@ const headline = computed(() => {
 const subline = computed(() => {
   if (helper.value === 'checking') return ''
   if (helper.value === 'offline')
-    return 'Halaman ini belum tersambung ke Penulis NFC. Bila programnya sudah berjalan (ikon di taskbar), izinkan akses perangkat lokal di Chrome lalu muat ulang halaman.'
+    return `Halaman ini belum tersambung ke Penulis NFC. Bila programnya sudah berjalan (ikonnya di ${trayPlace(platform.value)}), izinkan akses perangkat lokal di Chrome lalu muat ulang halaman.`
   if (helper.value === 'asking')
-    return 'Klik Yes di jendela “Penulis NFC · Izinkan situs?” di layar komputer ini.'
+    return 'Klik Izinkan di jendela “Penulis NFC · Izinkan situs?” di layar komputer ini.'
   if (helper.value === 'denied')
-    return 'Klik kanan ikon Penulis NFC di taskbar → Situs yang diizinkan → Tanya lagi situs yang ditolak, lalu muat ulang halaman ini.'
+    return `Klik ikon Penulis NFC di ${trayPlace(platform.value)} → Situs yang diizinkan → Tanya lagi situs yang ditolak, lalu muat ulang halaman ini.`
   if (helper.value === 'no-reader')
     return 'Penulis NFC sudah aktif. Colokkan ACR122U ke port USB komputer ini.'
   if (nfc.working.value === 'read') return 'Isinya ditampilkan di bawah tanpa mengubah kartu.'
@@ -274,16 +287,7 @@ const lights = computed(() => [
             <!-- Not set up: how to get the helper -->
             <div v-if="helper === 'offline'" class="flex flex-col gap-3">
               <ol class="flex flex-col gap-2 text-sm text-zinc-700">
-                <li
-                  v-for="(s, i) in [
-                    'Unduh dan jalankan PenulisNFC.exe di komputer yang dipakai menulis.',
-                    'Bila muncul “Windows protected your PC”, klik More info → Run anyway.',
-                    'Colokkan pembaca ACR122U ke USB.',
-                    'Saat Penulis NFC bertanya “Izinkan situs?”, klik Yes.',
-                  ]"
-                  :key="i"
-                  class="flex gap-3"
-                >
+                <li v-for="(s, i) in steps" :key="i" class="flex gap-3">
                   <span
                     class="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground"
                   >
@@ -293,14 +297,23 @@ const lights = computed(() => [
                 </li>
               </ol>
               <Button as-child class="h-11 self-start">
-                <a :href="HELPER_DOWNLOAD" download>
+                <a :href="download.href" download>
                   <Download class="size-4" />
-                  Unduh PenulisNFC.exe
+                  Unduh {{ download.file }}
                 </a>
               </Button>
               <p class="text-xs text-muted-foreground">
-                Sekali per komputer (Windows 10/11); programnya ikut berjalan saat Windows mulai.
-                Bila Chrome menanyakan izin mengakses perangkat di jaringan lokal, pilih Izinkan.
+                Sekali per komputer ({{
+                  platform === 'mac' ? 'macOS 11 atau lebih baru' : 'Windows 10/11'
+                }}); programnya ikut berjalan saat komputer mulai. Bila Chrome menanyakan izin
+                mengakses perangkat di jaringan lokal, pilih Izinkan.
+                <a
+                  class="underline underline-offset-2"
+                  :href="HELPER_DOWNLOADS[platform === 'mac' ? 'windows' : 'mac'].href"
+                  download
+                >
+                  Unduh versi {{ platform === 'mac' ? 'Windows' : 'Mac' }}
+                </a>
               </p>
             </div>
 
