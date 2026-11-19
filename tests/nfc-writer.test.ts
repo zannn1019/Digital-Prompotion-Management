@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  HELPER_DOWNLOADS,
   cardForUrl,
   countsAsFailedWrite,
+  deniedHelp,
+  helperPlatform,
   helperState,
+  runningHint,
+  setupSteps,
   writerErrorMessage,
   type HelperStatus,
 } from '../app/utils/nfcWriter'
@@ -70,5 +75,38 @@ describe('checking a card', () => {
     expect(cardForUrl(cards, 'https://POSTER.test/k/BBB22222/')?.code).toBe('BBB22222')
     expect(cardForUrl(cards, 'https://other.test/k/BBB22222')).toBeUndefined()
     expect(cardForUrl(cards, null)).toBeUndefined()
+  })
+})
+
+describe('which helper to offer', () => {
+  it('offers the Mac app on macOS and the Windows program elsewhere', () => {
+    const mac =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/142.0 Safari/537.36'
+    const win =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/142.0 Safari/537.36'
+    const ipad = 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1'
+    expect(helperPlatform(mac)).toBe('mac')
+    expect(helperPlatform(win)).toBe('windows')
+    expect(helperPlatform(win, 'macOS')).toBe('mac')
+    expect(helperPlatform(ipad)).toBe('windows')
+    expect(HELPER_DOWNLOADS.mac.file).toBe('PenulisNFC-mac.zip')
+  })
+
+  it('gives each system its own setup, both ending with allowing the site', () => {
+    expect(setupSteps('mac').join(' ')).toMatch(/Applications.*Open Anyway/)
+    expect(setupSteps('windows').join(' ')).toMatch(/Run anyway/)
+    for (const p of ['mac', 'windows'] as const)
+      expect(setupSteps(p).at(-1)).toMatch(/Izinkan situs/)
+  })
+})
+
+describe('helper wording per system', () => {
+  // The Mac app has no menu-bar icon: it is reached by opening it again.
+  it('points Mac users to the app itself and Windows users to the tray icon', () => {
+    expect(runningHint('mac')).toMatch(/Applications/)
+    expect(runningHint('windows')).toMatch(/taskbar/)
+    expect(deniedHelp('mac')).toMatch(/Hapus izin semua situs/)
+    expect(deniedHelp('windows')).toMatch(/Tanya lagi situs yang ditolak/)
+    expect(setupSteps('mac').join(' ')).toMatch(/tanpa ikon/)
   })
 })

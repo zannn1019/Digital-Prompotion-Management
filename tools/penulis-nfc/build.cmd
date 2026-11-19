@@ -1,26 +1,27 @@
 @echo off
-rem Builds Penulis NFC with the C# compiler that ships with Windows (.NET Framework 4.x): no SDK needed.
-rem Output: public\downloads\PenulisNFC.exe (served by the app at /downloads/PenulisNFC.exe).
+rem Builds Penulis NFC for Windows and macOS from this computer (needs Go; no C compiler, no Mac).
+rem Runs the tests first. Output, served by the app:
+rem   public\downloads\PenulisNFC.exe      Windows 10/11 (tray icon)
+rem   public\downloads\PenulisNFC-mac.zip  macOS 11+, Apple Silicon and Intel (runs in the background)
 setlocal
-set CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
-if not exist "%CSC%" set CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe
-if not exist "%CSC%" (
-  echo csc.exe not found. Windows with .NET Framework 4.x is needed to build.
-  exit /b 1
-)
-set HERE=%~dp0
-set OUT=%HERE%..\..\public\downloads
-set TMPDIR=%HERE%bin
-if not exist "%OUT%" mkdir "%OUT%"
-if not exist "%TMPDIR%" mkdir "%TMPDIR%"
+cd /d "%~dp0"
+set CGO_ENABLED=0
+set OUT=..\..\public\downloads
+for /f "tokens=4 delims= " %%v in ('findstr /b /c:"const version = " server.go') do set VERSION=%%~v
+if not exist bin\mac mkdir bin\mac
 
-rem 1. Self-test of the NDEF encoding.
-"%CSC%" /nologo /target:exe /out:"%TMPDIR%\selftest.exe" "%HERE%src\Ndef.cs" "%HERE%src\SelfTest.cs" || exit /b 1
-"%TMPDIR%\selftest.exe" || exit /b 1
+go test ./... || exit /b 1
 
-rem 2. The tray program.
-"%CSC%" /nologo /target:winexe /optimize+ /platform:anycpu ^
-  /r:System.Web.Extensions.dll /r:System.Windows.Forms.dll /r:System.Drawing.dll ^
-  /out:"%OUT%\PenulisNFC.exe" ^
-  "%HERE%src\Ndef.cs" "%HERE%src\Log.cs" "%HERE%src\SCard.cs" "%HERE%src\Tag.cs" "%HERE%src\ClassicTag.cs" "%HERE%src\Writer.cs" "%HERE%src\Server.cs" "%HERE%src\Program.cs" || exit /b 1
-echo Built %OUT%\PenulisNFC.exe
+set GOOS=windows
+set GOARCH=amd64
+go build -trimpath -ldflags "-H windowsgui -s -w" -o %OUT%\PenulisNFC.exe . || exit /b 1
+echo Built %OUT%\PenulisNFC.exe (%VERSION%)
+
+set GOOS=darwin
+set GOARCH=arm64
+go build -trimpath -ldflags "-s -w" -o bin\mac\penulis-arm64 . || exit /b 1
+set GOARCH=amd64
+go build -trimpath -ldflags "-s -w" -o bin\mac\penulis-amd64 . || exit /b 1
+set GOOS=
+set GOARCH=
+go run ./cmd/packmac %VERSION% bin\mac\penulis-arm64 bin\mac\penulis-amd64 %OUT%\PenulisNFC-mac.zip || exit /b 1
