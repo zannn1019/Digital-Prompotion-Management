@@ -2,6 +2,7 @@
 import { Plus } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Clock } from '@lucide/vue'
 import {
   Table,
   TableBody,
@@ -74,7 +75,7 @@ const kpis = computed(() => {
 <template>
   <div>
     <AdminPageHeader
-      :title="`${greeting}, ${user?.name.split(' ')[0] ?? ''}`"
+      :title="`${greeting}, ${shortName(user?.name)}`"
       :description="`Ringkasan 7 hari terakhir · ${fmtDateLong(today())}`"
     >
       <Button as-child class="h-11">
@@ -184,7 +185,7 @@ const kpis = computed(() => {
             <AdminTableSkeleton v-if="status === 'pending'" :rows="4" />
             <ul v-else class="text-[13px]">
               <li v-for="a in data?.activity" :key="a.id" class="border-b py-2.5 last:border-0">
-                <b class="font-semibold">{{ a.userName.split(' ')[0] }}</b>
+                <b class="font-semibold">{{ shortName(a.userName) }}</b>
                 {{ a.action.toLowerCase() }} {{ a.entity.toLowerCase() }}
                 <b class="font-semibold">{{ a.target }}</b>
                 <div class="text-muted-foreground">{{ fmtDateTime(a.at) }}</div>

@@ -29,12 +29,8 @@ const headingTag = computed(() => `h${props.level}`)
         error ? 'bg-red-50 text-red-600' : 'bg-muted text-zinc-700',
       ]"
     >
-      <component
-        :is="error ? TriangleAlert : icon"
-        v-if="error || icon"
-        class="size-7"
-        aria-hidden="true"
-      />
+      <TriangleAlert class="size-7" v-if="!error" />
+      <component :is="icon" v-else class="size-7" aria-hidden="true" />
     </div>
     <component :is="headingTag" class="text-lg font-semibold">{{ title }}</component>
     <p v-if="description" class="max-w-[44ch] text-sm text-muted-foreground">{{ description }}</p>

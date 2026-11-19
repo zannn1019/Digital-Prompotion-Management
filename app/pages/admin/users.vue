@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { Check, Copy, Plus } from '@lucide/vue'
+import {
+  Check,
+  CheckCheck,
+  Copy,
+  FileText,
+  Megaphone,
+  Minus,
+  Plus,
+  ShieldCheck,
+  TriangleAlert,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -19,6 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import type { Component } from 'vue'
 import type { Role, User } from '#shared/types'
 import { ROLE_LABEL, USER_STATUS } from '#shared/constants'
 import { fmtDateTime } from '#shared/utils/format'
@@ -28,15 +39,31 @@ definePageMeta({ layout: 'admin', middleware: 'auth', title: 'Pengguna', superOn
 const { user: me } = useSession()
 const { data, status, refresh } = useFetch<User[]>('/api/users', { server: false })
 const ROLES = Object.keys(ROLE_LABEL) as Role[]
-const ROLE_HELP: Record<Role, string> = {
-  staff:
-    'Mengunggah poster, membuat pengumuman, menyusun halaman, dan memetakan kartu NFC. Poster dan pengumuman tampil setelah disetujui Approver.',
-  super: 'Semua menu, ditambah Pengguna, Audit Log, dan Pengaturan.',
-  marketing:
-    'Seperti Staff Konten, dan bisa ditunjuk sebagai penanggung jawab poster, halaman, dan kartu. Klik dan ketukannya tampil per orang di Analitik. Poster dan pengumumannya tampil setelah disetujui Approver.',
-  approver:
-    'Seperti Staff Konten, ditambah menu Persetujuan: menyetujui atau menolak poster dan pengumuman yang diajukan. Bisa menerbitkan langsung.',
-}
+// New-user form: roles from least to most access, so the safest choice comes first.
+const ROLE_PICK: { role: Role; icon: Component; summary: string }[] = [
+  { role: 'staff', icon: FileText, summary: 'Membuat dan menyusun konten' },
+  { role: 'marketing', icon: Megaphone, summary: 'Konten + penanggung jawab poster' },
+  { role: 'approver', icon: CheckCheck, summary: 'Konten + menyetujui pengajuan' },
+  { role: 'super', icon: ShieldCheck, summary: 'Akses penuh, termasuk pengguna' },
+]
+// The same list for every role, so the differences show at a glance. `no` explains a missing right.
+const ROLE_CAPS: { text: string; roles: Role[]; no?: string }[] = [
+  {
+    text: 'Unggah poster, buat pengumuman, susun halaman, petakan kartu',
+    roles: ['staff', 'marketing', 'approver', 'super'],
+  },
+  {
+    text: 'Konten tayang tanpa menunggu persetujuan',
+    roles: ['approver', 'super'],
+    no: 'Perlu disetujui Approver',
+  },
+  { text: 'Menyetujui atau menolak pengajuan orang lain', roles: ['approver', 'super'] },
+  {
+    text: 'Jadi penanggung jawab poster; klik dan tap tampil per orang di Analitik',
+    roles: ['marketing'],
+  },
+  { text: 'Kelola Pengguna, Audit Log, dan Pengaturan', roles: ['super'] },
+]
 
 // ---- Create --------------------------------------------------------------
 const showNew = ref(false)
@@ -412,76 +439,160 @@ function onRoleChange(u: User, e: Event) {
     </p>
 
     <Dialog v-model:open="showNew">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Tambah pengguna baru</DialogTitle>
+      <!-- Header and footer stay put; only the fields scroll on short screens. -->
+      <DialogContent
+        class="grid max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 p-0 sm:max-w-[600px]"
+      >
+        <DialogHeader class="px-6 pt-6 pr-14 pb-2 text-left">
+          <DialogTitle>Tambah pengguna</DialogTitle>
           <DialogDescription>
-            Kata sandi sementara dibuat otomatis setelah disimpan.
+            Akun langsung aktif. Kata sandi sementara muncul setelah disimpan.
           </DialogDescription>
         </DialogHeader>
-        <form id="new-user-form" novalidate class="flex flex-col gap-4" @submit.prevent="create">
-          <AdminTextField
-            id="u-name"
-            v-model="form.name"
-            label="Nama lengkap"
-            placeholder="Contoh: Dewi Lestari"
-            :error="errors.name"
-          />
-          <AdminTextField
-            id="u-email"
-            v-model="form.email"
-            type="email"
-            label="Email"
-            :error="errors.email"
-          />
-          <fieldset class="flex flex-col gap-2">
-            <legend class="mb-2 text-sm font-medium">Peran</legend>
-            <label
-              v-for="r in ROLES"
-              :key="r"
-              :class="[
-                'flex gap-2.5 rounded-lg p-3 text-[13px] leading-snug',
-                form.role === r ? 'border-2 border-primary' : 'border',
-              ]"
-            >
-              <input
-                v-model="form.role"
-                type="radio"
-                :value="r"
-                class="mt-0.5 size-[18px] accent-primary"
-              />
-              <span>
-                <b class="font-semibold">{{ ROLE_LABEL[r] }}</b>
-                <br />
-                <span class="text-muted-foreground">{{ ROLE_HELP[r] }}</span>
-              </span>
-            </label>
-          </fieldset>
-          <div v-if="form.role === 'marketing'" class="grid gap-4 sm:grid-cols-2">
+        <form
+          id="new-user-form"
+          novalidate
+          class="flex flex-col gap-5 overflow-y-auto px-6 pt-3 pb-6"
+          @submit.prevent="create"
+        >
+          <div class="grid gap-4 sm:grid-cols-2">
             <AdminTextField
-              id="u-wa"
-              v-model="form.wa"
-              type="tel"
-              label="Nomor WhatsApp"
-              placeholder="628…"
-              :error="errors.wa"
-              hint="Format 62… tanpa + atau spasi."
+              id="u-name"
+              v-model="form.name"
+              label="Nama lengkap"
+              autocomplete="off"
+              hint="Tampil di Audit Log dan poster."
+              :error="errors.name"
             />
             <AdminTextField
-              id="u-phone"
-              v-model="form.phone"
-              type="tel"
-              label="Nomor telepon"
-              placeholder="Contoh: 0274 586688"
-              :error="errors.phone"
+              id="u-email"
+              v-model="form.email"
+              type="email"
+              inputmode="email"
+              autocomplete="off"
+              label="Email kantor"
+              placeholder="nama@rs-bethesda.test"
+              hint="Dipakai untuk masuk."
+              :error="errors.email"
             />
-            <p class="text-[13px] text-muted-foreground sm:col-span-2">
-              Tombol WhatsApp, telepon, dan email di poster miliknya memakai nomor ini dan email di
-              atas. Bila kosong, memakai kontak di Pengaturan.
-            </p>
           </div>
+
+          <fieldset class="flex flex-col gap-2">
+            <legend class="mb-2 text-sm font-medium">
+              Peran
+              <span class="font-normal text-muted-foreground">
+                · pilih akses paling kecil yang cukup
+              </span>
+            </legend>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <label
+                v-for="r in ROLE_PICK"
+                :key="r.role"
+                :class="[
+                  'flex cursor-pointer items-start gap-3 rounded-md has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring',
+                  form.role === r.role
+                    ? 'border-2 border-primary bg-accent p-[11px]'
+                    : 'border p-3 hover:bg-muted/60',
+                ]"
+              >
+                <input
+                  v-model="form.role"
+                  type="radio"
+                  name="u-role"
+                  :value="r.role"
+                  class="sr-only"
+                />
+                <component
+                  :is="r.icon"
+                  :class="[
+                    'mt-0.5 size-5 shrink-0',
+                    form.role === r.role ? 'text-primary' : 'text-muted-foreground',
+                  ]"
+                  aria-hidden="true"
+                />
+                <span class="flex flex-col">
+                  <b class="text-sm font-semibold">{{ ROLE_LABEL[r.role] }}</b>
+                  <span class="text-[13px] leading-snug text-muted-foreground">
+                    {{ r.summary }}
+                  </span>
+                </span>
+              </label>
+            </div>
+            <AdminFieldError id="u-role-err" :message="errors.role" />
+          </fieldset>
+
+          <section class="rounded-md bg-muted/60 px-4 py-3" aria-labelledby="u-caps-title">
+            <h3 id="u-caps-title" class="mb-1.5 text-sm font-semibold">
+              Yang bisa dilakukan {{ ROLE_LABEL[form.role] }}
+            </h3>
+            <ul class="flex flex-col gap-1">
+              <li
+                v-for="c in ROLE_CAPS"
+                :key="c.text"
+                :class="[
+                  'flex items-start gap-2 text-[13px] leading-snug',
+                  c.roles.includes(form.role) ? 'text-foreground' : 'text-muted-foreground',
+                ]"
+              >
+                <Check
+                  v-if="c.roles.includes(form.role)"
+                  class="mt-px size-4 shrink-0 text-green-700"
+                  aria-hidden="true"
+                />
+                <Minus v-else class="mt-px size-4 shrink-0" aria-hidden="true" />
+                <span>
+                  <span class="sr-only">
+                    {{ c.roles.includes(form.role) ? 'Bisa:' : 'Tidak bisa:' }}
+                  </span>
+                  {{ c.text }}
+                  <template v-if="!c.roles.includes(form.role) && c.no">· {{ c.no }}</template>
+                </span>
+              </li>
+            </ul>
+          </section>
+
+          <p
+            v-if="form.role === 'super'"
+            class="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2.5 text-[13px] leading-snug text-amber-900"
+          >
+            <TriangleAlert class="mt-px size-4 shrink-0" aria-hidden="true" />
+            Super Admin bisa menambah dan menonaktifkan pengguna serta mengubah Pengaturan. Berikan
+            hanya untuk tim IT atau pimpinan.
+          </p>
+
+          <fieldset v-if="form.role === 'marketing'" class="flex flex-col gap-3">
+            <legend class="mb-1 text-sm font-medium">
+              Kontak di poster miliknya
+              <span class="font-normal text-muted-foreground">· opsional</span>
+            </legend>
+            <p class="text-[13px] leading-snug text-muted-foreground">
+              Tombol WhatsApp dan telepon di poster Marketing ini memakai nomor berikut. Bila
+              kosong, memakai kontak di Pengaturan.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <AdminTextField
+                id="u-wa"
+                v-model="form.wa"
+                type="tel"
+                inputmode="tel"
+                label="Nomor WhatsApp"
+                placeholder="6281234567890"
+                hint="Diawali 62, tanpa + atau spasi."
+                :error="errors.wa"
+              />
+              <AdminTextField
+                id="u-phone"
+                v-model="form.phone"
+                type="tel"
+                inputmode="tel"
+                label="Nomor telepon"
+                placeholder="0274 586688"
+                :error="errors.phone"
+              />
+            </div>
+          </fieldset>
         </form>
-        <DialogFooter>
+        <DialogFooter class="border-t px-6 py-4">
           <Button type="button" variant="outline" class="h-11" @click="showNew = false">
             Batal
           </Button>
